@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>17. Finance</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --glass: rgba(255,255,255,0.62);
+      --glass-border: rgba(255,255,255,0.88);
+      --glass-shadow: 0 4px 32px rgba(80,80,180,0.08), 0 1.5px 6px rgba(0,0,0,0.04);
+      --text: #18182e;
+      --text-2: #6b7280;
+      --text-3: #9ca3af;
+      --accent: #5b5bd6;
+      --green: #16a34a;
+      --green-l: rgba(22,163,74,.11);
+      --red: #dc2626;
+      --red-l: rgba(220,38,38,.10);
+      --orange: #c2760a;
+      --orange-l: rgba(194,118,10,.10);
+      --blur: blur(24px) saturate(1.6);
+      --r: 22px;
+      --r-sm: 12px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #eef0f8 0%, #f5f0ff 50%, #eaf0ff 100%);
+      min-height: 100vh;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .glass {
+      background: var(--glass);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1.5px solid var(--glass-border);
+      border-radius: var(--r);
+      box-shadow: var(--glass-shadow);
+    }
+
+    .app { max-width: 1200px; margin: 0 auto; padding: 24px 16px 60px; }
+    .mb { margin-bottom: 16px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+    /* Header */
+    header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; margin-bottom: 16px; }
+    .logo { font-size: 19px; font-weight: 800; letter-spacing: -.5px; }
+    .logo span { color: var(--accent); font-weight: 400; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .date-badge { font-size: 12px; color: var(--text-2); padding: 5px 12px; background: rgba(0,0,0,.04); border-radius: 10px; text-transform: capitalize; }
+    #reminderBadge { display: none; font-size: 12px; font-weight: 600; padding: 5px 12px; background: var(--orange-l); color: var(--orange); border-radius: 10px; }
+
+    /* Nav */
+    .nav-tabs { display: flex; gap: 6px; margin-bottom: 20px; padding: 6px; background: rgba(255,255,255,.5); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); border: 1.5px solid var(--glass-border); border-radius: 16px; width: fit-content; box-shadow: var(--glass-shadow); }
+    .nav-tab { padding: 8px 22px; border-radius: 11px; font-size: 13.5px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--text-2); transition: all .18s; font-family: inherit; }
+    .nav-tab.active { background: var(--accent); color: #fff; }
+
+    /* Card */
+    .card { padding: 22px 26px; }
+    .card-label { font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-2); margin-bottom: 10px; }
+    .card-value { font-size: 34px; font-weight: 800; letter-spacing: -1.5px; }
+    .card-value.green { color: var(--green); }
+    .card-value.red   { color: var(--red); }
+    .card-sub { font-size: 13px; color: var(--text-2); margin-top: 3px; }
+
+    /* Progress */
+    .prog-wrap { margin-top: 18px; }
+    .prog-meta { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-2); margin-bottom: 7px; }
+    .prog-bar { height: 7px; background: rgba(0,0,0,.07); border-radius: 4px; overflow: hidden; }
+    .prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #a78bfa); border-radius: 4px; transition: width .7s cubic-bezier(.4,0,.2,1); }
+
+    /* Account chips */
+    .accounts-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .account-chip { font-size: 12px; padding: 5px 11px; background: rgba(255,255,255,.7); border: 1px solid rgba(255,255,255,.9); border-radius: 9px; color: var(--text-2); cursor: pointer; transition: box-shadow .15s; }
+    .account-chip:hover { box-shadow: 0 2px 8px rgba(91,91,214,.15); }
+    .account-chip b { color: var(--text); }
+
+    /* Mini stats */
+    .mini-stats { display: flex; gap: 18px; margin-top: 18px; }
+    .mini-stat-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text-2); margin-bottom: 5px; }
+    .mini-stat-value { font-size: 20px; font-weight: 800; letter-spacing: -.8px; }
+
+    /* Month tabs */
+    .month-tabs { display: flex; gap: 7px; margin-bottom: 16px; flex-wrap: wrap; }
+    .month-tab { padding: 7px 16px; border-radius: 11px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1.5px solid rgba(255,255,255,.7); background: rgba(255,255,255,.45); color: var(--text-2); transition: all .18s; }
+    .month-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* List items */
+    .list-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(0,0,0,.045); }
+    .list-item:last-child { border-bottom: none; }
+    .list-left { display: flex; align-items: center; gap: 9px; }
+    .item-desc { font-size: 13px; color: var(--text-2); }
+    .item-date { font-size: 11px; color: var(--text-3); }
+    .amount-green { font-size: 14px; font-weight: 700; color: var(--green); }
+    .amount-red   { font-size: 14px; font-weight: 700; color: var(--red); }
+    .amount-total { font-size: 15px; font-weight: 800; }
+
+    .section-mini { font-size: 10.5px; font-weight: 700; letter-spacing: .9px; text-transform: uppercase; color: var(--text-3); padding: 10px 0 5px; }
+
+    /* Clickable */
+    .clickable { cursor: pointer; border-radius: 8px; margin: 0 -8px; padding: 9px 8px; transition: background .14s; }
+    .clickable:hover { background: rgba(91,91,214,.07); }
+
+    /* ── Category badges — pastel palette ── */
+    .cat-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; }
+
+    /* Ingresos */
+    .cat-regalias      { background: #dcfce7; color: #166534; }
+    .cat-directo       { background: #ffedd5; color: #9a3412; }
+    .cat-djsets        { background: #ede9fe; color: #5b21b6; }
+    .cat-mix           { background: #dbeafe; color: #1e40af; }
+    .cat-otros-ing     { background: #f3f4f6; color: #374151; }
+
+    /* Gastos variables */
+    .cat-comida-fuera  { background: #fee2e2; color: #991b1b; }
+    .cat-cuidado-personal { background: #fce7f3; color: #9d174d; }
+    .cat-gastos-casa   { background: #d1fae5; color: #065f46; }
+    .cat-ropa          { background: #ffedd5; color: #9a3412; }
+    .cat-transporte    { background: #dbeafe; color: #1e40af; }
+    .cat-equipo        { background: #ede9fe; color: #5b21b6; }
+    .cat-otros         { background: #f3f4f6; color: #374151; }
+
+    /* Gastos fijos */
+    .cat-alquiler      { background: #fee2e2; color: #991b1b; }
+    .cat-autonomo      { background: #ffedd5; color: #9a3412; }
+    .cat-suscripciones { background: #fdf4ff; color: #a21caf; }
+    .cat-plan-ahorro   { background: #f7fee7; color: #3f6212; }
+
+    /* Badges */
+    .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; margin-left: 6px; text-transform: uppercase; letter-spacing: .3px; }
+    .badge-pending   { background: var(--orange-l); color: var(--orange); }
+    .badge-uncertain { background: rgba(107,114,128,.10); color: #6b7280; }
+
+    /* Pendientes */
+    .pend-item { padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,.045); }
+    .pend-item:last-of-type { border-bottom: none; }
+
+    /* Forms */
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 100px; }
+    .form-group label { font-size: 10.5px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; color: var(--text-2); }
+    .form-group input, .form-group select {
+      padding: 10px 13px; border: 1.5px solid rgba(200,200,230,.5);
+      border-radius: var(--r-sm); background: rgba(255,255,255,.75);
+      font-size: 13.5px; color: var(--text); outline: none; font-family: inherit;
+      transition: border-color .18s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+    .btn-add { padding: 10px 22px; background: var(--accent); color: #fff; border: none; border-radius: var(--r-sm); font-size: 13.5px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity .18s; white-space: nowrap; align-self: flex-end; }
+    .btn-add:hover { opacity: .82; }
+
+    /* Date input with calendar icon */
+    .date-input-wrap { position: relative; flex: 1; min-width: 130px; max-width: 160px; }
+    .date-input-wrap input {
+      padding: 10px 36px 10px 13px; border: 1.5px solid rgba(200,200,230,.5);
+      border-radius: var(--r-sm); background: rgba(255,255,255,.75);
+      font-size: 13.5px; color: var(--text); outline: none; font-family: inherit;
+      transition: border-color .18s; cursor: pointer; width: 100%; box-sizing: border-box;
+    }
+    .date-input-wrap input:focus { border-color: var(--accent); }
+    .date-input-wrap .cal-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 15px; pointer-events: none; color: var(--text-3); }
+
+    /* IVA */
+    .iva-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
+    .iva-row.total { font-weight: 800; font-size: 15px; border-top: 1px solid rgba(0,0,0,.08); margin-top: 8px; padding-top: 12px; }
+
+    /* Charts */
+    .chart-wrap { padding: 22px 26px; }
+    svg.bar-chart { width: 100%; height: 200px; }
+    .pie-section { display: flex; align-items: center; gap: 24px; }
+    .pie-legend { flex: 1; }
+    .legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px 0; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .legend-pct { margin-left: auto; font-weight: 700; font-size: 12px; color: var(--text); }
+
+    .empty { text-align: center; padding: 24px; color: var(--text-3); font-size: 13px; }
+    .note { font-size: 11px; color: var(--text-3); margin-top: 10px; }
+
+    /* ── Edit modal ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(24,24,46,.35); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: rgba(255,255,255,.93); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1.5px solid rgba(255,255,255,.95); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,.15); padding: 24px; width: 420px; max-width: 95vw; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-2); line-height: 1; padding: 2px 6px; border-radius: 6px; }
+    .modal-close:hover { background: rgba(0,0,0,.06); }
+    .modal-body { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-del  { padding: 10px 18px; background: var(--red-l); color: var(--red); border: none; border-radius: var(--r-sm); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .btn-del:hover { opacity: .75; }
+    .btn-save { padding: 10px 22px; background: var(--accent); color: #fff; border: none; border-radius: var(--r-sm); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .btn-save:hover { opacity: .82; }
+
+    /* ── IVA popup ── */
+    #ivaPopup {
+      display: none; position: fixed; inset: 0;
+      background: rgba(24,24,46,.35); backdrop-filter: blur(4px);
+      z-index: 1100; align-items: center; justify-content: center;
+    }
+    #ivaPopup.open { display: flex; }
+    .iva-popup-box {
+      background: rgba(255,255,255,.95); backdrop-filter: blur(30px);
+      border: 1.5px solid rgba(255,255,255,.98); border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.15); padding: 28px; width: 380px; max-width: 95vw;
+    }
+    .iva-popup-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .iva-popup-sub { font-size: 13px; color: var(--text-2); margin-bottom: 20px; }
+    .iva-popup-amount { font-size: 28px; font-weight: 800; color: var(--accent); letter-spacing: -1px; margin-bottom: 20px; }
+    .iva-options { display: flex; flex-direction: column; gap: 10px; }
+    .iva-opt {
+      padding: 14px 16px; border-radius: 14px; border: 1.5px solid rgba(200,200,230,.4);
+      background: rgba(255,255,255,.7); cursor: pointer; transition: all .15s;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .iva-opt:hover { border-color: var(--accent); background: rgba(91,91,214,.05); }
+    .iva-opt-icon { font-size: 20px; }
+    .iva-opt-text b { display: block; font-size: 13.5px; font-weight: 700; }
+    .iva-opt-text span { font-size: 12px; color: var(--text-2); }
+    .iva-incluido-input { display: none; margin-top: 14px; padding: 14px 16px; border-radius: 14px; border: 1.5px solid rgba(200,200,230,.4); background: rgba(255,255,255,.8); }
+    .iva-incluido-input label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--text-2); display: block; margin-bottom: 6px; }
+    .iva-incluido-input input { width: 100%; padding: 8px 12px; border: 1.5px solid rgba(200,200,230,.5); border-radius: 10px; font-size: 15px; font-family: inherit; outline: none; }
+    .iva-incluido-input input:focus { border-color: var(--accent); }
+    .iva-confirm-btn { margin-top: 14px; width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: var(--r-sm); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; display: none; }
+
+    /* ── Date picker ── */
+    #datePicker {
+      display: none; position: fixed; z-index: 2000;
+      background: rgba(255,255,255,.96); backdrop-filter: blur(30px);
+      border: 1.5px solid rgba(255,255,255,.98); border-radius: 18px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.18); padding: 16px; width: 280px;
+    }
+    .dp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .dp-nav { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-2); padding: 4px 8px; border-radius: 8px; transition: background .12s; }
+    .dp-nav:hover { background: rgba(0,0,0,.06); }
+    .dp-month-label { font-size: 14px; font-weight: 700; }
+    .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .dp-day-hdr { text-align: center; font-size: 10px; font-weight: 700; color: var(--text-3); padding: 4px 0 6px; text-transform: uppercase; }
+    .dp-day { text-align: center; font-size: 13px; padding: 6px 0; border-radius: 8px; cursor: pointer; transition: background .12s; }
+    .dp-day:hover { background: rgba(91,91,214,.1); }
+    .dp-today { background: rgba(91,91,214,.12); color: var(--accent); font-weight: 700; }
+    .dp-selected { background: var(--accent); color: #fff; font-weight: 700; }
+    .dp-selected:hover { background: var(--accent); }
+    .dp-empty { pointer-events: none; }
+
+    @media (max-width: 720px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .form-row { flex-direction: column; }
+      .card-value { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="glass mb">
+    <div class="logo">17.<span>finance</span></div>
+    <div class="header-right">
+      <div class="date-badge" id="dateBadge"></div>
+      <div id="reminderBadge"></div>
+    </div>
+  </header>
+
+  <!-- Nav -->
+  <div class="nav-tabs mb">
+    <button class="nav-tab active" onclick="switchTab('resumen')">Resumen</button>
+    <button class="nav-tab" onclick="switchTab('ingresos')">Ingresos</button>
+    <button class="nav-tab" onclick="switchTab('gastos')">Gastos</button>
+  </div>
+
+  <!-- ══════════ TAB: RESUMEN ══════════ -->
+  <div id="tab-resumen">
+    <div class="grid-2 mb">
+      <div class="card glass">
+        <div class="card-label">Patrimonio personal</div>
+        <div class="card-value" id="totalPatrimonio"></div>
+        <div class="accounts-row" id="accountsRow"></div>
+        <div class="prog-wrap">
+          <div class="prog-meta"><span>Meta 50.000€ · dic 2026</span><span id="progressPct"></span></div>
+          <div class="prog-bar"><div class="prog-fill" id="progressFill"></div></div>
+        </div>
+      </div>
+      <div class="card glass">
+        <div class="card-label">Balance del mes</div>
+        <div class="card-value" id="balanceMes"></div>
+        <div class="card-sub" id="balanceSub"></div>
+        <div class="mini-stats">
+          <div class="mini-stat">
+            <div class="mini-stat-label">Ingresos</div>
+            <div class="mini-stat-value" style="color:var(--green)" id="totalIngresos"></div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-label">Gastos</div>
+            <div class="mini-stat-value" style="color:var(--red)" id="totalGastos"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="month-tabs" id="monthTabsR"></div>
+    <div class="grid-2 mb">
+      <div class="card glass">
+        <div class="card-label">Ingresos del mes</div>
+        <div id="ingresosListR"></div>
+      </div>
+      <div class="card glass">
+        <div class="card-label">Gastos variables del mes</div>
+        <div id="gastosVarR"></div>
+      </div>
+    </div>
+    <div class="chart-wrap glass mb">
+      <div class="card-label" style="margin-bottom:16px">Ingresos vs Gastos · Jun–Sep 2026</div>
+      <svg id="barChart" class="bar-chart" viewBox="0 0 680 200" preserveAspectRatio="xMidYMid meet"></svg>
+      <div style="display:flex;gap:20px;margin-top:10px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-2)"><div style="width:12px;height:12px;border-radius:3px;background:#22c55e"></div>Ingresos</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-2)"><div style="width:12px;height:12px;border-radius:3px;background:#f87171"></div>Gastos</div>
+      </div>
+    </div>
+    <div class="grid-3 mb">
+      <div class="card glass">
+        <div class="card-label">Gastos fijos mensuales</div>
+        <div id="gastosFijosR"></div>
+      </div>
+      <div class="card glass">
+        <div class="card-label">Pendientes de cobro</div>
+        <div id="pendientesR"></div>
+      </div>
+      <div class="card glass">
+        <div class="card-label">IVA trimestral estimado</div>
+        <div id="ivaR"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: INGRESOS ══════════ -->
+  <div id="tab-ingresos" style="display:none">
+    <div class="grid-2 mb">
+      <div class="chart-wrap glass">
+        <div class="card-label" style="margin-bottom:16px">Por categoría · <span id="pieTitleIng"></span></div>
+        <div class="pie-section">
+          <svg style="width:160px;height:160px;flex-shrink:0" id="pieIng" viewBox="0 0 160 160"></svg>
+          <div class="pie-legend" id="legendIng"></div>
+        </div>
+      </div>
+      <div class="card glass">
+        <div class="card-label">Añadir ingreso</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="form-row">
+            <div class="form-group" style="max-width:110px">
+              <label>Cantidad €</label>
+              <input type="number" id="ingAmount" placeholder="0" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label>Categoría</label>
+              <select id="ingCat">
+                <option value="regalias">Regalías</option>
+                <option value="directo">Directo</option>
+                <option value="djsets">DJ Sets</option>
+                <option value="mix">Mix &amp; Master</option>
+                <option value="otros-ing">Otros</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Descripción</label>
+              <input type="text" id="ingDesc" placeholder="D.Valentino, La3...">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+            <div class="form-group">
+              <label>Fecha</label>
+              <div class="date-input-wrap">
+                <input type="text" id="ingDate" readonly placeholder="Selecciona fecha" onclick="showDP(this)">
+                <span class="cal-icon">📅</span>
+              </div>
+            </div>
+            <button class="btn-add" onclick="addIngreso()">+ Añadir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="month-tabs" id="monthTabsI"></div>
+    <div class="card glass mb">
+      <div class="card-label">Todos los ingresos · <span id="ingListTitle"></span></div>
+      <div id="ingresosList"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ TAB: GASTOS ══════════ -->
+  <div id="tab-gastos" style="display:none">
+    <div class="grid-2 mb">
+      <div class="chart-wrap glass">
+        <div class="card-label" style="margin-bottom:16px">Por categoría · <span id="pieTitleGas"></span></div>
+        <div class="pie-section">
+          <svg style="width:160px;height:160px;flex-shrink:0" id="pieGas" viewBox="0 0 160 160"></svg>
+          <div class="pie-legend" id="legendGas"></div>
+        </div>
+      </div>
+      <div class="card glass">
+        <div class="card-label">Añadir gasto</div>
+        <div class="form-row">
+          <div class="form-group" style="max-width:110px">
+            <label>Cantidad €</label>
+            <input type="number" id="gasAmount" placeholder="0" step="0.01" min="0">
+          </div>
+          <div class="form-group">
+            <label>Categoría</label>
+            <select id="gasCat">
+              <option value="comida-fuera">Comida fuera</option>
+              <option value="cuidado-personal">Cuidado personal</option>
+              <option value="gastos-casa">Gastos casa</option>
+              <option value="ropa">Ropa</option>
+              <option value="transporte">Transporte</option>
+              <option value="equipo">Equipo / Plugins</option>
+              <option value="otros">Otros</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Descripción</label>
+            <input type="text" id="gasDesc" placeholder="Restaurante, Zara...">
+          </div>
+          <div class="form-group">
+            <label>Fecha</label>
+            <div class="date-input-wrap">
+              <input type="text" id="gasDate" readonly placeholder="Selecciona fecha" onclick="showDP(this)">
+              <span class="cal-icon">📅</span>
+            </div>
+          </div>
+          <button class="btn-add" onclick="addGasto()">+ Añadir</button>
+        </div>
+      </div>
+    </div>
+    <div class="month-tabs" id="monthTabsG"></div>
+    <div class="card glass mb">
+      <div class="card-label">Gastos variables · <span id="gasListTitle"></span></div>
+      <div id="gastosList"></div>
+    </div>
+    <div class="card glass mb">
+      <div class="card-label">Gastos fijos (referencia)</div>
+      <div id="gastosFijosG"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Edit Modal ── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">Editar</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Fecha</label>
+        <div class="date-input-wrap" style="max-width:100%">
+          <input type="text" id="mFecha" readonly placeholder="Selecciona fecha" onclick="showDP(this)" style="max-width:100%">
+          <span class="cal-icon">📅</span>
+        </div>
+      </div>
+      <div class="form-group"><label>Descripción</label><input type="text" id="mDesc"></div>
+      <div class="form-group"><label>Categoría</label><select id="mCat"></select></div>
+      <div class="form-group"><label>Cantidad (€)</label><input type="number" id="mCantidad" step="0.01" min="0"></div>
+      <div class="form-group" id="mIvaGroup"><label>IVA (€ neto contabilizado aparte)</label><input type="number" id="mIva" step="0.01" min="0" placeholder="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-del" onclick="deleteModalItem()">Eliminar</button>
+      <button class="btn-save" onclick="saveModalItem()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── IVA Popup ── -->
+<div id="ivaPopup">
+  <div class="iva-popup-box">
+    <div class="iva-popup-title">¿Este ingreso lleva IVA?</div>
+    <div class="iva-popup-sub">Importe introducido:</div>
+    <div class="iva-popup-amount" id="ivaPopupAmount"></div>
+    <div class="iva-options">
+
+      <div class="iva-opt" onclick="selectIVAOpt('incluido')">
+        <span class="iva-opt-icon">📥</span>
+        <div class="iva-opt-text">
+          <b>Sí, IVA ya incluido en el precio</b>
+          <span>El IVA está dentro de lo que me han pagado</span>
+        </div>
+      </div>
+
+      <div class="iva-opt" onclick="selectIVAOpt('aparte')">
+        <span class="iva-opt-icon">➕</span>
+        <div class="iva-opt-text">
+          <b>Sí, IVA aparte (21% encima)</b>
+          <span>El precio es base, el IVA se suma automáticamente</span>
+        </div>
+      </div>
+
+      <div class="iva-opt" onclick="selectIVAOpt('sin')">
+        <span class="iva-opt-icon">🚫</span>
+        <div class="iva-opt-text">
+          <b>Sin IVA</b>
+          <span>Regalías u otros ingresos sin IVA</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="iva-incluido-input" id="ivaIncluidoInput">
+      <label>Cantidad de IVA incluida (€)</label>
+      <input type="number" id="ivaIncluidoVal" step="0.01" min="0" placeholder="0.00">
+    </div>
+    <button class="iva-confirm-btn" id="ivaConfirmBtn" onclick="confirmIVA()">Confirmar y guardar</button>
+  </div>
+</div>
+
+<!-- ── Date Picker ── -->
+<div id="datePicker">
+  <div class="dp-header">
+    <button class="dp-nav" onclick="dpNav(-1)">‹</button>
+    <span class="dp-month-label" id="dpLabel"></span>
+    <button class="dp-nav" onclick="dpNav(1)">›</button>
+  </div>
+  <div class="dp-grid" id="dpGrid"></div>
+</div>
+
+<script>
+// ================================================================
+// CONSTANTS
+// ================================================================
+
+const GOAL     = 50000;
+const MONTHS   = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTHS_S = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const VISIBLE_MONTHS = [5,6,7,8];
+
+const GASTOS_FIJOS = [
+  { nombre:'Alquiler',            cat:'alquiler',      cantidad:650 },
+  { nombre:'Gastos casa (común)', cat:'gastos-casa',   cantidad:250 },
+  { nombre:'Cuota autónomo',      cat:'autonomo',      cantidad:300 },
+  { nombre:'Estudio',             cat:'otros',         cantidad:73  },
+  { nombre:'Splice',              cat:'suscripciones', cantidad:15  },
+  { nombre:'Dropbox',             cat:'suscripciones', cantidad:12  },
+  { nombre:'iCloud+',             cat:'suscripciones', cantidad:10  },
+  { nombre:'Netflix',             cat:'suscripciones', cantidad:3   },
+  { nombre:'Plan ahorro',         cat:'plan-ahorro',   cantidad:75  },
+];
+const TOTAL_FIJOS = GASTOS_FIJOS.reduce((s,g)=>s+g.cantidad,0);
+
+const PENDIENTES = [
+  { desc:'Deal Publishing',                  cantidad:15000, iva:0,   estado:'pendiente', cuando:'Agosto est.'  },
+  { desc:'Conciertos D.Valentino (mayo)',     cantidad:3000,  iva:630, estado:'pendiente', cuando:'Julio est.'   },
+  { desc:'Regalías Q1 D.Valentino',          cantidad:2400,  iva:0,   estado:'pendiente', cuando:'Fin de junio' },
+  { desc:'Regalías Bluu acumuladas',         cantidad:2200,  iva:0,   estado:'incierto',  cuando:'Sin fecha'    },
+  { desc:'Regalías noviembre (estafa moro)', cantidad:1450,  iva:0,   estado:'incierto',  cuando:'Sin fecha'    },
+];
+
+const CAT_ING_LABELS = {
+  regalias:'Regalías', directo:'Directo', djsets:'DJ Sets',
+  mix:'Mix & Master', 'otros-ing':'Otros'
+};
+const CAT_GAS_LABELS = {
+  'comida-fuera':'Comida fuera', 'cuidado-personal':'Cuidado personal',
+  'gastos-casa':'Gastos casa', ropa:'Ropa', transporte:'Transporte',
+  equipo:'Equipo', otros:'Otros'
+};
+const CAT_FIJOS_EXTRA = {
+  alquiler:'Alquiler', autonomo:'Autónomo',
+  suscripciones:'Suscripciones', 'plan-ahorro':'Plan ahorro'
+};
+
+// Chart / pie colors (match the pastel palette)
+const COLORS_ING = {
+  regalias:'#4ade80', directo:'#fb923c', djsets:'#c4b5fd',
+  mix:'#7dd3fc', 'otros-ing':'#d1d5db'
+};
+const COLORS_GAS = {
+  'comida-fuera':'#f87171', 'cuidado-personal':'#f472b6',
+  'gastos-casa':'#34d399', ropa:'#fb923c', transporte:'#93c5fd',
+  equipo:'#a855f7', otros:'#9ca3af',
+  alquiler:'#ef4444', autonomo:'#f97316',
+  suscripciones:'#e879f9', 'plan-ahorro':'#a3e635'
+};
+
+// ================================================================
+// SEED + MIGRATION
+// ================================================================
+
+function migrate() {
+  // compra-casa → gastos-casa
+  const gastos = getGastos();
+  let changed = false;
+  gastos.forEach(g => { if(g.categoria==='compra-casa'){ g.categoria='gastos-casa'; changed=true; } });
+  if (changed) saveGastos(gastos);
+
+  const ingresos = getIngresos();
+  let changed2 = false;
+  ingresos.forEach(i => { if(i.categoria==='compra-casa'){ i.categoria='gastos-casa'; changed2=true; } });
+  if (changed2) saveIngresos(ingresos);
+}
+
+function seedIfNeeded() {
+  if (localStorage.getItem('17f_seeded')) return;
+  let id = 100;
+  const ing = [];
+
+  ['2026-06-30','2026-07-31','2026-08-31','2026-09-30'].forEach(f => {
+    ing.push({id:id++,fecha:f,descripcion:'D.Valentino',categoria:'regalias',cantidad:800,iva:0});
+    ing.push({id:id++,fecha:f,descripcion:'Bluu',categoria:'regalias',cantidad:300,iva:0});
+    ing.push({id:id++,fecha:f,descripcion:'Otros artistas',categoria:'regalias',cantidad:100,iva:0});
+  });
+
+  [
+    ['2026-06-11','D.Valentino',500,105],['2026-06-19','D.Valentino',500,105],['2026-06-26','D.Valentino',500,105],
+    ['2026-07-16','D.Valentino',500,105],['2026-07-18','D.Valentino',500,105],['2026-07-24','D.Valentino',500,105],
+    ['2026-07-25','D.Valentino',500,105],['2026-07-30','D.Valentino',500,105],
+    ['2026-08-05','D.Valentino',500,105],['2026-08-10','D.Valentino',500,105],['2026-08-14','D.Valentino',500,105],
+    ['2026-08-21','D.Valentino',500,105],['2026-08-21','Tarchi',400,84],
+    ['2026-08-27','D.Valentino',500,105],['2026-08-29','D.Valentino',500,105],['2026-08-30','D.Valentino',500,105],
+    ['2026-09-01','D.Valentino',500,105],['2026-09-17','Tarchi',400,84],
+    ['2026-09-18','D.Valentino',500,105],['2026-09-19','D.Valentino',500,105],
+  ].forEach(([f,d,c,v])=>ing.push({id:id++,fecha:f,descripcion:d,categoria:'directo',cantidad:c,iva:v}));
+
+  [
+    ['2026-06-20','Residente La3',230],['2026-07-05','Residente La3',230],
+    ['2026-07-18','DJ Set',200],['2026-07-25','DJ Set',200],
+    ['2026-08-15','Residente La3',230],['2026-09-12','Residente La3',230],
+  ].forEach(([f,d,c])=>ing.push({id:id++,fecha:f,descripcion:d,categoria:'djsets',cantidad:c,iva:0}));
+
+  saveIngresos(ing);
+  localStorage.setItem('17f_nextId', id.toString());
+  localStorage.setItem('17f_seeded','1');
+}
+
+// ================================================================
+// STATE
+// ================================================================
+
+let activeTab = 'resumen';
+let selMonth  = new Date().getMonth();
+let selYear   = new Date().getFullYear();
+if (!VISIBLE_MONTHS.includes(selMonth)) selMonth = VISIBLE_MONTHS[0];
+
+let modalMode = null;
+let editingId = null;
+let pendingIngreso = null;
+let ivaMode = null; // 'incluido' | 'aparte' | 'sin'
+
+// ================================================================
+// STORAGE
+// ================================================================
+
+const getPatrimonio  = () => { const s=localStorage.getItem('17f_patrimonio'); return s?JSON.parse(s):{cuenta1:3200,cuenta2:17900,planAhorro:600,cripto:300}; };
+const savePatrimonio = p => localStorage.setItem('17f_patrimonio',JSON.stringify(p));
+const getIngresos    = () => { const s=localStorage.getItem('17f_ingresos');  return s?JSON.parse(s):[]; };
+const saveIngresos   = g => localStorage.setItem('17f_ingresos',JSON.stringify(g));
+const getGastos      = () => { const s=localStorage.getItem('17f_gastos');    return s?JSON.parse(s):[]; };
+const saveGastos     = g => localStorage.setItem('17f_gastos',JSON.stringify(g));
+const nextId         = () => { const n=parseInt(localStorage.getItem('17f_nextId')||'1'); localStorage.setItem('17f_nextId',n+1); return n; };
+
+// ================================================================
+// HELPERS
+// ================================================================
+
+const fmt  = n => new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',minimumFractionDigits:0,maximumFractionDigits:0}).format(n);
+const fmt2 = n => new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+
+const ingByMonth  = (m,y) => getIngresos().filter(i=>{const d=new Date(i.fecha);return d.getMonth()===m&&d.getFullYear()===y;});
+const gasByMonth  = (m,y) => getGastos().filter(g=>{const d=new Date(g.fecha);return d.getMonth()===m&&d.getFullYear()===y;});
+const totalIngMes = (m,y) => ingByMonth(m,y).reduce((s,i)=>s+i.cantidad,0);
+const totalGasMes = (m,y) => gasByMonth(m,y).reduce((s,g)=>s+parseFloat(g.cantidad),0)+TOTAL_FIJOS;
+
+function getIVATrimestre(trim) {
+  const months = trim===2?[3,4,5]:[6,7,8];
+  const ivaRep = getIngresos()
+    .filter(i=>{const d=new Date(i.fecha);return months.includes(d.getMonth())&&d.getFullYear()===2026&&i.iva>0;})
+    .reduce((s,i)=>s+i.iva,0);
+  const ivaSop = (15+12+73)*months.length*0.21;
+  return {ivaRep, ivaSop, resultado:ivaRep-ivaSop};
+}
+
+// Format YYYY-MM-DD → "17 Jun 2026"
+function fmtDateStr(s) {
+  if(!s) return '';
+  const d=new Date(s+'T12:00:00');
+  return `${d.getDate()} ${MONTHS_S[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ================================================================
+// CATEGORY BADGE
+// ================================================================
+
+function catBadge(cat, isIng=false) {
+  const allLabels = {...CAT_ING_LABELS,...CAT_GAS_LABELS,...CAT_FIJOS_EXTRA};
+  const label = allLabels[cat] || cat;
+  return `<span class="cat-badge cat-${cat}">${label}</span>`;
+}
+
+// ================================================================
+// CHARTS
+// ================================================================
+
+function drawPieSVG(svgEl, legendEl, data) {
+  const total = data.reduce((s,d)=>s+d.value,0);
+  if(!total){svgEl.innerHTML=`<text x="80" y="85" text-anchor="middle" font-size="12" fill="#9ca3af">Sin datos</text>`;legendEl.innerHTML='';return;}
+  const cx=80,cy=80,ro=72,ri=38;
+  let angle=-Math.PI/2, paths='';
+  data.forEach(d=>{
+    if(!d.value)return;
+    const slice=(d.value/total)*2*Math.PI, end=angle+slice;
+    const x1o=cx+ro*Math.cos(angle),y1o=cy+ro*Math.sin(angle);
+    const x2o=cx+ro*Math.cos(end),  y2o=cy+ro*Math.sin(end);
+    const x1i=cx+ri*Math.cos(end),  y1i=cy+ri*Math.sin(end);
+    const x2i=cx+ri*Math.cos(angle),y2i=cy+ri*Math.sin(angle);
+    const large=slice>Math.PI?1:0;
+    paths+=`<path d="M${x1o},${y1o} A${ro},${ro} 0 ${large},1 ${x2o},${y2o} L${x1i},${y1i} A${ri},${ri} 0 ${large},0 ${x2i},${y2i} Z" fill="${d.color}" opacity="0.88"/>`;
+    angle=end;
+  });
+  svgEl.innerHTML=paths+`<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="11" fill="#6b7280" font-family="system-ui">${fmt(total)}</text>`;
+  legendEl.innerHTML=data.filter(d=>d.value>0).map(d=>
+    `<div class="legend-row"><div class="legend-dot" style="background:${d.color}"></div><span style="color:var(--text-2);font-size:12px">${d.label}</span><span class="legend-pct">${((d.value/total)*100).toFixed(1)}%</span></div>`
+  ).join('');
+}
+
+function drawBarChart(svgEl) {
+  const ingData=VISIBLE_MONTHS.map(m=>totalIngMes(m,2026));
+  const gasData=VISIBLE_MONTHS.map(m=>totalGasMes(m,2026));
+  const maxVal=Math.max(...ingData,...gasData,1000);
+  const W=680,H=180,padL=60,padR=20,padT=10,padB=40;
+  const chartW=W-padL-padR,chartH=H-padT-padB;
+  const groupW=chartW/VISIBLE_MONTHS.length;
+  let html=`<rect x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" fill="rgba(0,0,0,0.02)" rx="8"/>`;
+  [0.25,0.5,0.75,1].forEach(f=>{
+    const y=padT+chartH*(1-f),val=maxVal*f;
+    html+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>`;
+    html+=`<text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="9.5" fill="#9ca3af" font-family="system-ui">${val>=1000?(val/1000).toFixed(0)+'k':val}€</text>`;
+  });
+  VISIBLE_MONTHS.forEach((m,i)=>{
+    const gx=padL+i*groupW,ingH=(ingData[i]/maxVal)*chartH,gasH=(gasData[i]/maxVal)*chartH;
+    const bW=Math.min(groupW*0.32,30),gap=bW*0.45,cx=gx+groupW/2;
+    html+=`<rect x="${cx-gap-bW}" y="${padT+chartH-ingH}" width="${bW}" height="${ingH}" fill="#22c55e" opacity="0.82" rx="4"/>`;
+    html+=`<rect x="${cx+gap}" y="${padT+chartH-gasH}" width="${bW}" height="${gasH}" fill="#f87171" opacity="0.82" rx="4"/>`;
+    if(ingH>20)html+=`<text x="${cx-gap-bW/2}" y="${padT+chartH-ingH-4}" text-anchor="middle" font-size="9" fill="#16a34a" font-family="system-ui" font-weight="700">${(ingData[i]/1000).toFixed(1)}k</text>`;
+    if(gasH>20)html+=`<text x="${cx+gap+bW/2}" y="${padT+chartH-gasH-4}" text-anchor="middle" font-size="9" fill="#dc2626" font-family="system-ui" font-weight="700">${(gasData[i]/1000).toFixed(1)}k</text>`;
+    html+=`<text x="${cx}" y="${H-padB+16}" text-anchor="middle" font-size="11" fill="#6b7280" font-family="system-ui">${MONTHS_S[m]}</text>`;
+  });
+  svgEl.innerHTML=html;
+}
+
+// ================================================================
+// DATE PICKER
+// ================================================================
+
+let dpTarget=null, dpViewM=new Date().getMonth(), dpViewY=new Date().getFullYear();
+
+function showDP(inputEl) {
+  dpTarget=inputEl;
+  const raw = inputEl.dataset.raw;
+  if(raw){const d=new Date(raw+'T12:00:00');dpViewM=d.getMonth();dpViewY=d.getFullYear();}
+  else{dpViewM=new Date().getMonth();dpViewY=new Date().getFullYear();}
+  renderDP();
+  const rect=inputEl.getBoundingClientRect();
+  const dp=document.getElementById('datePicker');
+  let top=rect.bottom+window.scrollY+6;
+  let left=rect.left+window.scrollX;
+  if(left+280>window.innerWidth)left=window.innerWidth-290;
+  dp.style.top=top+'px';
+  dp.style.left=left+'px';
+  dp.style.display='block';
+  setTimeout(()=>document.addEventListener('click',dpOutside,{once:true}),10);
+}
+
+function dpOutside(e){
+  const dp=document.getElementById('datePicker');
+  if(!dp.contains(e.target))dp.style.display='none';
+}
+
+function renderDP(){
+  document.getElementById('dpLabel').textContent=`${MONTHS[dpViewM]} ${dpViewY}`;
+  const today=new Date();
+  const rawSel=dpTarget&&dpTarget.dataset.raw;
+  const sel=rawSel?new Date(rawSel+'T12:00:00'):null;
+  const firstDay=new Date(dpViewY,dpViewM,1).getDay();
+  const daysInMonth=new Date(dpViewY,dpViewM+1,0).getDate();
+  const offset=firstDay===0?6:firstDay-1;
+  const hdrs=['Lu','Ma','Mi','Ju','Vi','Sa','Do'].map(d=>`<div class="dp-day-hdr">${d}</div>`).join('');
+  const empty=Array(offset).fill('<div class="dp-empty"></div>').join('');
+  const days=Array.from({length:daysInMonth},(_,i)=>{
+    const d=i+1;
+    const isToday=today.getDate()===d&&today.getMonth()===dpViewM&&today.getFullYear()===dpViewY;
+    const isSel=sel&&sel.getDate()===d&&sel.getMonth()===dpViewM&&sel.getFullYear()===dpViewY;
+    return `<div class="dp-day${isToday?' dp-today':''}${isSel?' dp-selected':''}" onclick="dpSelect(${d})">${d}</div>`;
+  }).join('');
+  document.getElementById('dpGrid').innerHTML=hdrs+empty+days;
+}
+
+function dpNav(dir){
+  dpViewM+=dir;
+  if(dpViewM<0){dpViewM=11;dpViewY--;}
+  if(dpViewM>11){dpViewM=0;dpViewY++;}
+  renderDP();
+}
+
+function dpSelect(day){
+  const yyyy=dpViewY,mm=String(dpViewM+1).padStart(2,'0'),dd=String(day).padStart(2,'0');
+  const raw=`${yyyy}-${mm}-${dd}`;
+  if(dpTarget){
+    dpTarget.dataset.raw=raw;
+    dpTarget.value=fmtDateStr(raw);
+  }
+  document.getElementById('datePicker').style.display='none';
+}
+
+// ================================================================
+// IVA POPUP
+// ================================================================
+
+function showIVAPopup(amount) {
+  document.getElementById('ivaPopupAmount').textContent=fmt(amount);
+  document.getElementById('ivaIncluidoInput').style.display='none';
+  document.getElementById('ivaConfirmBtn').style.display='none';
+  document.getElementById('ivaIncluidoVal').value='';
+  ivaMode=null;
+  document.getElementById('ivaPopup').classList.add('open');
+}
+
+function selectIVAOpt(mode) {
+  ivaMode=mode;
+  const inclDiv=document.getElementById('ivaIncluidoInput');
+  const confirmBtn=document.getElementById('ivaConfirmBtn');
+  if(mode==='incluido'){
+    const amt=pendingIngreso?pendingIngreso.amount:0;
+    const ivaCalc=(amt*21/121).toFixed(2);
+    document.getElementById('ivaIncluidoVal').value=ivaCalc;
+    inclDiv.style.display='block';
+    confirmBtn.style.display='block';
+  } else {
+    inclDiv.style.display='none';
+    confirmBtn.style.display='block';
+  }
+}
+
+function confirmIVA() {
+  if(!pendingIngreso||!ivaMode)return;
+  const{amount,cat,desc,date}=pendingIngreso;
+  let neto=amount,iva=0;
+
+  if(ivaMode==='incluido'){
+    iva=parseFloat(document.getElementById('ivaIncluidoVal').value)||0;
+    neto=parseFloat((amount-iva).toFixed(2));
+  } else if(ivaMode==='aparte'){
+    iva=parseFloat((amount*0.21).toFixed(2));
+    neto=amount;
+  }
+  // 'sin' → neto=amount, iva=0
+
+  const list=getIngresos();
+  list.push({id:nextId(),fecha:date,descripcion:desc||(CAT_ING_LABELS[cat]||cat),categoria:cat,cantidad:neto,iva});
+  saveIngresos(list);
+
+  closeIVAPopup();
+  pendingIngreso=null;
+  document.getElementById('ingAmount').value='';
+  document.getElementById('ingDesc').value='';
+  const d=new Date(date+'T12:00:00');
+  selMonth=d.getMonth();selYear=d.getFullYear();
+  renderIngresos();
+}
+
+function closeIVAPopup(){
+  document.getElementById('ivaPopup').classList.remove('open');
+  ivaMode=null;
+}
+
+document.getElementById('ivaPopup').addEventListener('click',e=>{if(e.target===e.currentTarget)closeIVAPopup();});
+
+// ================================================================
+// MODAL (edit)
+// ================================================================
+
+function openModal(mode,id) {
+  modalMode=mode; editingId=id;
+  document.getElementById('modalOverlay').classList.add('open');
+  if(mode==='ingreso'){
+    document.getElementById('modalTitle').textContent='Editar ingreso';
+    document.getElementById('mIvaGroup').style.display='flex';
+    document.getElementById('mCat').innerHTML=Object.entries(CAT_ING_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+    const item=getIngresos().find(i=>i.id===id);
+    if(item){
+      const mf=document.getElementById('mFecha');
+      mf.dataset.raw=item.fecha; mf.value=fmtDateStr(item.fecha);
+      document.getElementById('mDesc').value=item.descripcion;
+      document.getElementById('mCat').value=item.categoria;
+      document.getElementById('mCantidad').value=item.cantidad;
+      document.getElementById('mIva').value=item.iva||0;
+    }
+  } else {
+    document.getElementById('modalTitle').textContent='Editar gasto';
+    document.getElementById('mIvaGroup').style.display='none';
+    document.getElementById('mCat').innerHTML=Object.entries(CAT_GAS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+    const item=getGastos().find(g=>g.id===id);
+    if(item){
+      const mf=document.getElementById('mFecha');
+      mf.dataset.raw=item.fecha; mf.value=fmtDateStr(item.fecha);
+      document.getElementById('mDesc').value=item.descripcion;
+      document.getElementById('mCat').value=item.categoria;
+      document.getElementById('mCantidad').value=item.cantidad;
+    }
+  }
+}
+
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('open');
+  modalMode=null;editingId=null;
+}
+
+function saveModalItem(){
+  const mf=document.getElementById('mFecha');
+  const fecha=mf.dataset.raw||'';
+  const desc=document.getElementById('mDesc').value.trim();
+  const cat=document.getElementById('mCat').value;
+  const cantidad=parseFloat(document.getElementById('mCantidad').value);
+  if(!fecha||!cantidad){alert('Faltan fecha o cantidad.');return;}
+  if(modalMode==='ingreso'){
+    const iva=parseFloat(document.getElementById('mIva').value)||0;
+    saveIngresos(getIngresos().map(i=>i.id===editingId?{...i,fecha,descripcion:desc,categoria:cat,cantidad,iva}:i));
+  } else {
+    saveGastos(getGastos().map(g=>g.id===editingId?{...g,fecha,descripcion:desc,categoria:cat,cantidad}:g));
+  }
+  closeModal();render();
+}
+
+function deleteModalItem(){
+  if(!confirm('¿Eliminar este ítem?'))return;
+  if(modalMode==='ingreso')saveIngresos(getIngresos().filter(i=>i.id!==editingId));
+  else saveGastos(getGastos().filter(g=>g.id!==editingId));
+  closeModal();render();
+}
+
+document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+
+// ================================================================
+// RENDER HELPERS
+// ================================================================
+
+function renderHeader(){
+  const now=new Date();
+  document.getElementById('dateBadge').textContent=now.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+  const gastos=getGastos(),badge=document.getElementById('reminderBadge');
+  if(!gastos.length){badge.style.display='block';badge.textContent='Sin gastos apuntados aún';return;}
+  const last=gastos.map(g=>new Date(g.fecha)).sort((a,b)=>b-a)[0];
+  const diff=Math.floor((now-last)/86400000);
+  if(diff>=3){badge.style.display='block';badge.textContent=`${diff} días sin apuntar gastos`;}
+  else badge.style.display='none';
+}
+
+function buildMonthTabs(id,fn){
+  document.getElementById(id).innerHTML=VISIBLE_MONTHS.map(m=>
+    `<div class="month-tab${m===selMonth?' active':''}" onclick="${fn}(${m})">${MONTHS[m]}</div>`
+  ).join('');
+}
+
+function renderGastosFijosHTML(){
+  return GASTOS_FIJOS.map(g=>
+    `<div class="list-item"><div class="list-left">${catBadge(g.cat)}<span class="item-desc">${g.nombre}</span></div><span class="amount-red">-${fmt(g.cantidad)}</span></div>`
+  ).join('')+
+  `<div class="list-item" style="border-top:1px solid rgba(0,0,0,.09);margin-top:4px;padding-top:12px">
+    <b>Total fijos</b><span class="amount-total" style="color:var(--red)">-${fmt(TOTAL_FIJOS)}</span></div>`;
+}
+
+function renderPendientesHTML(){
+  return PENDIENTES.map(p=>
+    `<div class="pend-item"><div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div><div style="font-size:13px;font-weight:600">${p.desc}</div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:2px">${p.cuando}${p.iva?` · +${fmt(p.iva)} IVA`:''}</div></div>
+      <div style="text-align:right;margin-left:12px">
+        <div class="amount-green">${fmt(p.cantidad)}</div>
+        <span class="badge badge-${p.estado==='pendiente'?'pending':'uncertain'}">${p.estado==='pendiente'?'esperado':'incierto'}</span>
+      </div></div></div>`
+  ).join('')+
+  `<div class="pend-item" style="border-top:1px solid rgba(0,0,0,.09);padding-top:12px;display:flex;justify-content:space-between">
+    <b>Total pendiente</b><span class="amount-total amount-green">${fmt(PENDIENTES.reduce((s,p)=>s+p.cantidad,0))}</span></div>
+  <p class="note">* IVA de conciertos no incluido hasta cobro</p>`;
+}
+
+function renderIVAHTML(trim){
+  const{ivaRep,ivaSop,resultado}=getIVATrimestre(trim);
+  const label=trim===2?'Q2 · Abr–Jun':'Q3 · Jul–Sep';
+  const decla=trim===2?'Julio 2026':'Octubre 2026';
+  return `<div style="font-size:11.5px;color:var(--accent);font-weight:700;margin-bottom:12px">${label} · Declarar en ${decla}</div>
+    <div class="iva-row"><span style="color:var(--text-2)">IVA repercutido</span><span style="color:var(--green)">+${fmt2(ivaRep)}</span></div>
+    <div class="iva-row"><span style="color:var(--text-2)">IVA soportado</span><span style="color:var(--red)">-${fmt2(ivaSop)}</span></div>
+    <div class="iva-row total"><span>A pagar a Hacienda</span><span style="color:var(--orange)">${fmt2(resultado)}</span></div>
+    <p class="note">Estimación. Confirma con tu gestor.</p>`;
+}
+
+// ================================================================
+// RENDER — RESUMEN
+// ================================================================
+
+function renderResumen(){
+  const p=getPatrimonio(),total=p.cuenta1+p.cuenta2+p.planAhorro+p.cripto,pct=Math.min((total/GOAL)*100,100);
+  document.getElementById('totalPatrimonio').textContent=fmt(total);
+  document.getElementById('progressPct').textContent=pct.toFixed(1)+'%';
+  document.getElementById('progressFill').style.width=pct+'%';
+  document.getElementById('accountsRow').innerHTML=[['cuenta1','Cuenta 1'],['cuenta2','Cuenta 2'],['planAhorro','Plan ahorro'],['cripto','Cripto']]
+    .map(([k,l])=>`<div class="account-chip" onclick="editAccount('${k}')"><b>${fmt(p[k])}</b> ${l}</div>`).join('');
+
+  const ing=totalIngMes(selMonth,selYear),gas=totalGasMes(selMonth,selYear),bal=ing-gas;
+  document.getElementById('totalIngresos').textContent=fmt(ing);
+  document.getElementById('totalGastos').textContent=fmt(gas);
+  const balEl=document.getElementById('balanceMes');
+  balEl.textContent=(bal>=0?'+':'-')+fmt(Math.abs(bal));
+  balEl.className='card-value '+(bal>=0?'green':'red');
+  document.getElementById('balanceSub').textContent=bal>=0?'Ahorrando este mes':'En negativo este mes';
+
+  buildMonthTabs('monthTabsR','selMonthR');
+
+  const items=ingByMonth(selMonth,selYear).sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+  const byCat={};
+  items.forEach(i=>{if(!byCat[i.categoria])byCat[i.categoria]=[];byCat[i.categoria].push(i);});
+  let ingHtml='';
+  Object.entries(byCat).forEach(([cat,arr])=>{
+    ingHtml+=`<div class="section-mini">${CAT_ING_LABELS[cat]||cat}</div>`;
+    arr.forEach(i=>{
+      const d=new Date(i.fecha+'T12:00:00');
+      ingHtml+=`<div class="list-item clickable" onclick="openModal('ingreso',${i.id})">
+        <div class="list-left"><span class="item-desc">${i.descripcion}</span><span class="item-date">${d.getDate()} ${MONTHS_S[d.getMonth()]}</span></div>
+        <span class="amount-green">${fmt(i.cantidad)}</span></div>`;
+    });
+  });
+  document.getElementById('ingresosListR').innerHTML=ingHtml||'<div class="empty">Sin ingresos este mes</div>';
+
+  const gasV=gasByMonth(selMonth,selYear).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  document.getElementById('gastosVarR').innerHTML=gasV.length
+    ?gasV.map(g=>{const d=new Date(g.fecha+'T12:00:00');return`<div class="list-item clickable" onclick="openModal('gasto',${g.id})"><div class="list-left">${catBadge(g.categoria)}<span class="item-desc">${g.descripcion||''}</span><span class="item-date">${d.getDate()} ${MONTHS_S[d.getMonth()]}</span></div><span class="amount-red">-${fmt(g.cantidad)}</span></div>`;}).join('')
+    :'<div class="empty">Sin gastos variables</div>';
+
+  drawBarChart(document.getElementById('barChart'));
+  document.getElementById('gastosFijosR').innerHTML=renderGastosFijosHTML();
+  document.getElementById('pendientesR').innerHTML=renderPendientesHTML();
+  document.getElementById('ivaR').innerHTML=renderIVAHTML(selMonth<=5?2:3);
+}
+
+// ================================================================
+// RENDER — INGRESOS
+// ================================================================
+
+function renderIngresos(){
+  buildMonthTabs('monthTabsI','selMonthI');
+  document.getElementById('pieTitleIng').textContent=MONTHS[selMonth]+' '+selYear;
+  document.getElementById('ingListTitle').textContent=MONTHS[selMonth]+' '+selYear;
+
+  const items=ingByMonth(selMonth,selYear);
+  const bycat={};
+  items.forEach(i=>bycat[i.categoria]=(bycat[i.categoria]||0)+i.cantidad);
+  drawPieSVG(
+    document.getElementById('pieIng'),document.getElementById('legendIng'),
+    Object.entries(CAT_ING_LABELS).map(([k,l])=>({label:l,value:bycat[k]||0,color:COLORS_ING[k]}))
+  );
+
+  const sorted=ingByMonth(selMonth,selYear).sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+  let html='';
+  if(!sorted.length){html='<div class="empty">Sin ingresos. Añade uno arriba.</div>';}
+  else{
+    const byCat={};
+    sorted.forEach(i=>{if(!byCat[i.categoria])byCat[i.categoria]=[];byCat[i.categoria].push(i);});
+    Object.entries(byCat).forEach(([cat,arr])=>{
+      html+=`<div class="section-mini">${CAT_ING_LABELS[cat]||cat}</div>`;
+      arr.forEach(i=>{
+        const d=new Date(i.fecha+'T12:00:00');
+        html+=`<div class="list-item clickable" onclick="openModal('ingreso',${i.id})">
+          <div class="list-left">${catBadge(i.categoria,true)}<span class="item-desc">${i.descripcion}</span><span class="item-date">${d.getDate()} ${MONTHS_S[d.getMonth()]}</span></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="amount-green">${fmt(i.cantidad)}</span>
+            ${i.iva?`<span class="item-date">+${fmt(i.iva)} IVA</span>`:''}
+          </div></div>`;
+      });
+    });
+    html+=`<div class="list-item" style="border-top:1px solid rgba(0,0,0,.09);margin-top:4px;padding-top:12px"><b>Total</b><span class="amount-total amount-green">${fmt(sorted.reduce((s,i)=>s+i.cantidad,0))}</span></div>`;
+  }
+  document.getElementById('ingresosList').innerHTML=html;
+}
+
+// ================================================================
+// RENDER — GASTOS
+// ================================================================
+
+function renderGastos(){
+  buildMonthTabs('monthTabsG','selMonthG');
+  document.getElementById('pieTitleGas').textContent=MONTHS[selMonth]+' '+selYear;
+  document.getElementById('gasListTitle').textContent=MONTHS[selMonth]+' '+selYear;
+
+  const varItems=gasByMonth(selMonth,selYear);
+  const bycat={};
+  varItems.forEach(g=>bycat[g.categoria]=(bycat[g.categoria]||0)+parseFloat(g.cantidad));
+  GASTOS_FIJOS.forEach(g=>bycat[g.cat]=(bycat[g.cat]||0)+g.cantidad);
+  const allCats={...CAT_GAS_LABELS,...CAT_FIJOS_EXTRA};
+  drawPieSVG(
+    document.getElementById('pieGas'),document.getElementById('legendGas'),
+    Object.entries(allCats).map(([k,l])=>({label:l,value:bycat[k]||0,color:COLORS_GAS[k]||'#9ca3af'})).filter(d=>d.value>0)
+  );
+
+  const sorted=varItems.sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  let html='';
+  if(!sorted.length)html='<div class="empty">Sin gastos variables. Añade uno arriba.</div>';
+  else{
+    sorted.forEach(g=>{
+      const d=new Date(g.fecha+'T12:00:00');
+      html+=`<div class="list-item clickable" onclick="openModal('gasto',${g.id})">
+        <div class="list-left">${catBadge(g.categoria)}<span class="item-desc">${g.descripcion||''}</span><span class="item-date">${d.getDate()} ${MONTHS_S[d.getMonth()]}</span></div>
+        <span class="amount-red">-${fmt(g.cantidad)}</span></div>`;
+    });
+    html+=`<div class="list-item" style="border-top:1px solid rgba(0,0,0,.09);margin-top:4px;padding-top:12px"><b>Total variables</b><span class="amount-total" style="color:var(--red)">-${fmt(sorted.reduce((s,g)=>s+parseFloat(g.cantidad),0))}</span></div>`;
+  }
+  document.getElementById('gastosList').innerHTML=html;
+  document.getElementById('gastosFijosG').innerHTML=renderGastosFijosHTML();
+}
+
+// ================================================================
+// RENDER — MAIN
+// ================================================================
+
+function render(){
+  renderHeader();
+  if(activeTab==='resumen')  renderResumen();
+  if(activeTab==='ingresos') renderIngresos();
+  if(activeTab==='gastos')   renderGastos();
+}
+
+// ================================================================
+// ACTIONS
+// ================================================================
+
+function switchTab(tab){
+  activeTab=tab;
+  ['resumen','ingresos','gastos'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'':'none');
+  document.querySelectorAll('.nav-tab').forEach((btn,i)=>btn.classList.toggle('active',['resumen','ingresos','gastos'][i]===tab));
+  render();
+}
+
+function selMonthR(m){selMonth=m;renderResumen();}
+function selMonthI(m){selMonth=m;renderIngresos();}
+function selMonthG(m){selMonth=m;renderGastos();}
+
+function addIngreso(){
+  const amount=parseFloat(document.getElementById('ingAmount').value);
+  const cat=document.getElementById('ingCat').value;
+  const desc=document.getElementById('ingDesc').value.trim();
+  const dateRaw=document.getElementById('ingDate').dataset.raw||'';
+  if(!amount||!dateRaw){alert('Pon al menos la cantidad y selecciona la fecha.');return;}
+  pendingIngreso={amount,cat,desc,date:dateRaw};
+  showIVAPopup(amount);
+}
+
+function addGasto(){
+  const amount=parseFloat(document.getElementById('gasAmount').value);
+  const cat=document.getElementById('gasCat').value;
+  const desc=document.getElementById('gasDesc').value.trim();
+  const dateRaw=document.getElementById('gasDate').dataset.raw||'';
+  if(!amount||!dateRaw){alert('Pon al menos la cantidad y selecciona la fecha.');return;}
+  const list=getGastos();
+  list.push({id:nextId(),cantidad:amount,categoria:cat,descripcion:desc,fecha:dateRaw});
+  saveGastos(list);
+  const d=new Date(dateRaw+'T12:00:00');selMonth=d.getMonth();selYear=d.getFullYear();
+  document.getElementById('gasAmount').value='';
+  document.getElementById('gasDesc').value='';
+  renderGastos();
+}
+
+function editAccount(key){
+  const labels={cuenta1:'Cuenta 1',cuenta2:'Cuenta 2',planAhorro:'Plan ahorro',cripto:'Cripto'};
+  const p=getPatrimonio();
+  const val=prompt(`Nuevo saldo — ${labels[key]} (€):`,p[key]);
+  if(val!==null&&!isNaN(parseFloat(val))){p[key]=parseFloat(val);savePatrimonio(p);render();}
+}
+
+// ================================================================
+// INIT
+// ================================================================
+
+seedIfNeeded();
+migrate();
+render();
+setInterval(renderHeader,60000);
+</script>
+</body>
+</html>
