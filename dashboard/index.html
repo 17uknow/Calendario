@@ -556,7 +556,7 @@ option{background:#fff}
   <div class="tbr">
     <button class="tab-btn" id="btnWT" onclick="sv('weekly')">Tareas semana</button>
     <button class="tab-btn" id="btnG" onclick="sv('goals')">Objetivos</button>
-    <button class="sync-btn" id="syncBtn" onclick="handleSyncBtn()" title="Conectar Dropbox">
+    <button class="sync-btn" id="syncBtn" onclick="handleSyncBtn()" oncontextmenu="dbxLongDisconnect();return false;" title="Conectar Dropbox · click derecho para desconectar">
       <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15.5A4 4 0 0 1 6 7.5a5.5 5.5 0 0 1 10.9-.5A3.5 3.5 0 0 1 18.5 14"/><polyline points="12 12 12 20"/><polyline points="9 17 12 20 15 17"/></svg>
     </button>
     <button class="add-btn" onclick="openNL()">+ Añadir</button>
@@ -851,7 +851,7 @@ function renderGoalsView(){
 function renderWeeklyTasks(){
   const days=weekDays();
   const weekDayStrs=days.map(fd);
-  const allTasks=st.tasks.filter(t=>weekDayStrs.includes(t.date));
+  const allTasks=[];weekDayStrs.forEach(d=>tasksFor(d).forEach(t=>allTasks.push(t)));
   const byCat={};CATS.forEach(c=>byCat[c]=[]);
   allTasks.forEach(t=>{if(byCat[t.category])byCat[t.category].push(t);});
   const mon=days[0];const sun=days[6];
@@ -1245,39 +1245,63 @@ async function dbxFetch(url,opts,retry=true){
   return res;
 }
 
-async function dbxRead(){
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+async function dbxRead(tries=3){
   if(!dbxTokens)return null;
-  try{
-    const res=await dbxFetch('https://content.dropboxapi.com/2/files/download',{
-      method:'POST',
-      headers:{'Authorization':`Bearer ${dbxTokens.access_token}`,'Dropbox-API-Arg':JSON.stringify({path:DBX_FILE})}
-    });
-    if(res.ok)return await res.json();
-  }catch(e){}
+  await dbxRefresh();
+  for(let i=0;i<tries;i++){
+    try{
+      const linkRes=await dbxFetch('https://api.dropboxapi.com/2/files/get_temporary_link',{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${dbxTokens.access_token}`,'Content-Type':'application/json'},
+        body:JSON.stringify({path:DBX_FILE})
+      });
+      if(linkRes.ok){
+        const{link}=await linkRes.json();
+        const fileRes=await fetch(link);
+        if(fileRes.ok)return await fileRes.json();
+      }
+    }catch(e){}
+    if(i<tries-1)await sleep(800*(i+1));
+  }
   return null;
 }
 
-async function dbxWrite(data){
+async function dbxWrite(data,tries=3){
   if(!dbxTokens)return;
-  try{
-    await dbxFetch('https://content.dropboxapi.com/2/files/upload',{
-      method:'POST',
-      headers:{
-        'Authorization':`Bearer ${dbxTokens.access_token}`,
-        'Dropbox-API-Arg':JSON.stringify({path:DBX_FILE,mode:'overwrite',mute:true}),
-        'Content-Type':'application/octet-stream'
-      },
-      body:JSON.stringify(data)
-    });
-  }catch(e){}
+  await dbxRefresh();
+  for(let i=0;i<tries;i++){
+    try{
+      const res=await dbxFetch('https://content.dropboxapi.com/2/files/upload',{
+        method:'POST',
+        headers:{
+          'Authorization':`Bearer ${dbxTokens.access_token}`,
+          'Dropbox-API-Arg':JSON.stringify({path:DBX_FILE,mode:'overwrite',mute:true}),
+          'Content-Type':'application/octet-stream'
+        },
+        body:JSON.stringify(data)
+      });
+      if(res.ok)return;
+    }catch(e){}
+    if(i<tries-1)await sleep(800*(i+1));
+  }
 }
 
 function dbxDisconnect(){dbxTokens=null;localStorage.removeItem('17dbx');renderSyncBtn();}
 
-function handleSyncBtn(){
-  if(dbxConnected()){if(confirm('¿Desconectar Dropbox? Los datos quedan en local.'))dbxDisconnect();}
-  else dbxConnect();
+async function handleSyncBtn(){
+  if(!dbxConnected()){dbxConnect();return;}
+  const btn=document.getElementById('syncBtn');
+  btn.style.opacity='.5';
+  const remote=await dbxRead();
+  if(remote&&remote.t){
+    st.tasks=remote.t;st.goals=remote.g||[];
+    localStorage.setItem('17v4',JSON.stringify(remote));
+    render();
+  }
+  btn.style.opacity='1';
 }
+function dbxLongDisconnect(){if(confirm('¿Desconectar Dropbox? Los datos quedan en local.'))dbxDisconnect();}
 
 function renderSyncBtn(){
   const btn=document.getElementById('syncBtn');
@@ -1332,8 +1356,7 @@ async function init(){
   load();render();renderSyncBtn();
   if(dbxConnected()){
     const remote=await dbxRead();
-    const local=JSON.parse(localStorage.getItem('17v4')||'{}');
-    if(remote&&remote.t&&(remote.savedAt||0)>(local.savedAt||0)){
+    if(remote&&remote.t){
       st.tasks=remote.t;st.goals=remote.g||[];
       localStorage.setItem('17v4',JSON.stringify(remote));
       render();

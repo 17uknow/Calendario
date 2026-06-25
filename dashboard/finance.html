@@ -280,7 +280,13 @@
       <div class="card glass">
         <div class="card-label">Patrimonio personal</div>
         <div class="card-value" id="totalPatrimonio"></div>
+        <div class="card-sub" id="ivaPendienteNote" style="color:var(--orange)"></div>
         <div class="accounts-row" id="accountsRow"></div>
+        <button class="btn-add" style="width:100%;margin-top:14px;background:rgba(91,91,214,.12);color:var(--accent)" onclick="openProjPopup()">📊 Patrimonio proyectado</button>
+        <div id="projResult" style="display:none;margin-top:10px;padding:12px 14px;background:rgba(91,91,214,.07);border-radius:14px">
+          <div class="card-label" style="margin-bottom:2px">Proyección con meses marcados</div>
+          <div style="font-size:24px;font-weight:800;color:var(--accent)" id="projValue"></div>
+        </div>
         <div class="prog-wrap">
           <div class="prog-meta"><span>Meta 50.000€ · dic 2026</span><span id="progressPct"></span></div>
           <div class="prog-bar"><div class="prog-fill" id="progressFill"></div></div>
@@ -405,7 +411,7 @@
         <div class="form-row">
           <div class="form-group" style="max-width:110px">
             <label>Cantidad €</label>
-            <input type="number" id="gasAmount" placeholder="0" step="0.01" min="0">
+            <input type="number" id="gasAmount" placeholder="0" step="0.01" min="0" oninput="updateGasIvaPreview()">
           </div>
           <div class="form-group">
             <label>Categoría</label>
@@ -432,6 +438,20 @@
           </div>
           <button class="btn-add" onclick="addGasto()">+ Añadir</button>
         </div>
+        <div class="form-row" style="margin-top:10px;align-items:center">
+          <div class="form-group" style="flex-direction:row;align-items:center;gap:8px;min-width:auto">
+            <input type="checkbox" id="gasIvaDeducible" style="width:16px;height:16px" onchange="toggleGasIvaFields()">
+            <label style="text-transform:none;font-size:13px;font-weight:600;letter-spacing:0">IVA deducible</label>
+          </div>
+          <div class="form-group" id="gasIvaRateWrap" style="display:none;max-width:90px">
+            <label>% IVA</label>
+            <input type="number" id="gasIvaRatePct" step="0.5" min="0" max="50" value="21" oninput="updateGasIvaPreview()">
+          </div>
+          <div class="form-group" id="gasIvaPreviewWrap" style="display:none;max-width:140px">
+            <label>Deducible</label>
+            <div style="font-size:14px;font-weight:700;color:var(--accent);padding:10px 0" id="gasIvaPreview">0€</div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="month-tabs" id="monthTabsG"></div>
@@ -455,62 +475,150 @@
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label>Fecha</label>
+      <div class="form-group" id="mFechaGroup"><label>Fecha</label>
         <div class="date-input-wrap" style="max-width:100%">
           <input type="text" id="mFecha" readonly placeholder="Selecciona fecha" onclick="showDP(this)" style="max-width:100%">
           <span class="cal-icon">📅</span>
         </div>
       </div>
       <div class="form-group"><label>Descripción</label><input type="text" id="mDesc"></div>
-      <div class="form-group"><label>Categoría</label><select id="mCat"></select></div>
-      <div class="form-group"><label>Cantidad (€)</label><input type="number" id="mCantidad" step="0.01" min="0"></div>
-      <div class="form-group" id="mIvaGroup"><label>IVA (€ neto contabilizado aparte)</label><input type="number" id="mIva" step="0.01" min="0" placeholder="0"></div>
+      <div class="form-group" id="mCatGroup"><label>Categoría</label><select id="mCat"></select></div>
+      <div class="form-group"><label>Cantidad (€, bruto/factura)</label><input type="number" id="mCantidad" step="0.01" min="0" oninput="updateIrpfPreview()"></div>
+      <div class="form-group" id="mEnBGroup" style="flex-direction:row;align-items:center;gap:8px">
+        <input type="checkbox" id="mEnB" style="width:16px;height:16px" onchange="toggleModalEnB()">
+        <label style="text-transform:none;font-size:13px;font-weight:600;letter-spacing:0">Pagado en B (sin factura)</label>
+      </div>
+      <div class="form-group" id="mIvaGroup"><label>IVA (€ aparte)</label><input type="number" id="mIva" step="0.01" min="0" placeholder="0"></div>
+      <div class="form-group" id="mIrpfGroup" style="flex-direction:row;gap:10px">
+        <div style="flex:1"><label>% IRPF</label><input type="number" id="mIrpfPct" step="0.5" min="0" max="50" placeholder="7" oninput="updateIrpfPreview()"></div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end"><label style="visibility:hidden">.</label><div style="font-size:12px;color:var(--text-2);padding:10px 0">Retenido: <b id="mIrpfPreview">0€</b></div></div>
+      </div>
+      <div class="form-group" id="mComisionToggleGroup" style="flex-direction:row;align-items:center;gap:8px">
+        <input type="checkbox" id="mTieneComision" style="width:16px;height:16px" onchange="toggleModalComision()">
+        <label style="text-transform:none;font-size:13px;font-weight:600;letter-spacing:0">Pasa por managers (comisión)</label>
+      </div>
+      <div class="form-group" id="mComisionGroup" style="flex-direction:row;gap:10px">
+        <div style="flex:1"><label>% comisión</label><input type="number" id="mComisionPct" step="0.5" min="0" max="50" placeholder="20" oninput="updateIrpfPreview()"></div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end"><label style="visibility:hidden">.</label><div style="font-size:12px;color:var(--text-2);padding:10px 0">Comisión: <b id="mComisionPreview">0€</b></div></div>
+      </div>
+      <div class="form-group" id="mPendEstadoGroup">
+        <label>Estado</label>
+        <select id="mPendEstado">
+          <option value="pendiente">Esperado</option>
+          <option value="incierto">Incierto</option>
+        </select>
+      </div>
+      <div class="form-group" id="mPendCuandoGroup"><label>Cuándo</label><input type="text" id="mPendCuando" placeholder="Julio est., sin fecha..."></div>
+
+      <div class="form-group" id="mGasIvaToggleGroup" style="flex-direction:row;align-items:center;gap:8px">
+        <input type="checkbox" id="mGasIvaDeducible" style="width:16px;height:16px" onchange="toggleModalGasIva()">
+        <label style="text-transform:none;font-size:13px;font-weight:600;letter-spacing:0">IVA deducible</label>
+      </div>
+      <div class="form-group" id="mGasIvaGroup" style="flex-direction:row;gap:10px">
+        <div style="flex:1"><label>% IVA</label><input type="number" id="mGasIvaRatePct" step="0.5" min="0" max="50" placeholder="21" oninput="updateIrpfPreview()"></div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end"><label style="visibility:hidden">.</label><div style="font-size:12px;color:var(--text-2);padding:10px 0">Deducible: <b id="mGasIvaPreview">0€</b></div></div>
+      </div>
+      <p class="note" id="mGasIvaOverrideNote" style="display:none">Este gasto tiene un IVA deducible fijo (caso especial estudio). No se recalcula con la cantidad.</p>
     </div>
     <div class="modal-footer">
       <button class="btn-del" onclick="deleteModalItem()">Eliminar</button>
+      <button class="btn-save" id="btnMarcarCobrado" style="display:none;background:var(--green)" onclick="marcarPendienteCobrado(editingId)">✓ Marcar cobrado</button>
       <button class="btn-save" onclick="saveModalItem()">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- ── IVA Popup ── -->
+<!-- ── Patrimonio proyectado Popup ── -->
+<div class="modal-overlay" id="projPopup">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Patrimonio proyectado</span>
+      <button class="modal-close" onclick="closeProjPopup()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="note" style="margin:0">Marca los meses que quieras sumar a lo ya cerrado. Se suma el neto (ingresos − gastos) de cada uno, sin tocar el patrimonio real.</p>
+      <div id="projMonthsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Fiscal Popup (IVA + IRPF + en B) ── -->
 <div id="ivaPopup">
   <div class="iva-popup-box">
-    <div class="iva-popup-title">¿Este ingreso lleva IVA?</div>
+    <div class="iva-popup-title">¿Cómo se cobra este ingreso?</div>
     <div class="iva-popup-sub">Importe introducido:</div>
     <div class="iva-popup-amount" id="ivaPopupAmount"></div>
-    <div class="iva-options">
 
-      <div class="iva-opt" onclick="selectIVAOpt('incluido')">
-        <span class="iva-opt-icon">📥</span>
-        <div class="iva-opt-text">
-          <b>Sí, IVA ya incluido en el precio</b>
-          <span>El IVA está dentro de lo que me han pagado</span>
-        </div>
+    <div class="iva-opt" id="enBOpt" onclick="toggleEnB()" style="margin-bottom:14px">
+      <span class="iva-opt-icon">🤫</span>
+      <div class="iva-opt-text">
+        <b>Pagado en B (sin factura)</b>
+        <span>Sin IVA ni IRPF — se cuenta el 100% tal cual</span>
       </div>
-
-      <div class="iva-opt" onclick="selectIVAOpt('aparte')">
-        <span class="iva-opt-icon">➕</span>
-        <div class="iva-opt-text">
-          <b>Sí, IVA aparte (21% encima)</b>
-          <span>El precio es base, el IVA se suma automáticamente</span>
-        </div>
-      </div>
-
-      <div class="iva-opt" onclick="selectIVAOpt('sin')">
-        <span class="iva-opt-icon">🚫</span>
-        <div class="iva-opt-text">
-          <b>Sin IVA</b>
-          <span>Regalías u otros ingresos sin IVA</span>
-        </div>
-      </div>
-
+      <span id="enBCheck" style="margin-left:auto;font-size:16px;color:var(--accent)"></span>
     </div>
 
-    <div class="iva-incluido-input" id="ivaIncluidoInput">
-      <label>Cantidad de IVA incluida (€)</label>
-      <input type="number" id="ivaIncluidoVal" step="0.01" min="0" placeholder="0.00">
+    <div id="facturaSection">
+      <div class="iva-popup-sub" style="margin-bottom:8px;font-weight:700;color:var(--text)">IVA</div>
+      <div class="iva-options">
+        <div class="iva-opt" onclick="selectIVAOpt('incluido')">
+          <span class="iva-opt-icon">📥</span>
+          <div class="iva-opt-text">
+            <b>IVA ya incluido en el precio</b>
+            <span>El IVA está dentro de lo que me han pagado</span>
+          </div>
+        </div>
+        <div class="iva-opt" onclick="selectIVAOpt('aparte')">
+          <span class="iva-opt-icon">➕</span>
+          <div class="iva-opt-text">
+            <b>IVA aparte (21% encima)</b>
+            <span>El precio es base, el IVA se suma automáticamente</span>
+          </div>
+        </div>
+        <div class="iva-opt" onclick="selectIVAOpt('sin')">
+          <span class="iva-opt-icon">🚫</span>
+          <div class="iva-opt-text">
+            <b>Sin IVA</b>
+            <span>Regalías u otros ingresos sin IVA</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="iva-incluido-input" id="ivaIncluidoInput">
+        <label>Cantidad de IVA incluida (€)</label>
+        <input type="number" id="ivaIncluidoVal" step="0.01" min="0" placeholder="0.00">
+      </div>
+
+      <div class="iva-incluido-input" id="irpfInput" style="margin-top:10px;display:flex;gap:10px;align-items:flex-end">
+        <div style="flex:1">
+          <label>Retención IRPF</label>
+          <select id="irpfAplica" style="width:100%;padding:8px 12px;border:1.5px solid rgba(200,200,230,.5);border-radius:10px;font-size:14px;font-family:inherit;outline:none" onchange="toggleIrpfPct()">
+            <option value="si">Sí, retiene IRPF</option>
+            <option value="no">No retiene IRPF</option>
+          </select>
+        </div>
+        <div style="flex:1" id="irpfPctWrap">
+          <label>% IRPF</label>
+          <input type="number" id="irpfPctVal" step="0.5" min="0" max="50" value="7">
+        </div>
+      </div>
+
+      <div class="iva-popup-sub" style="margin:14px 0 8px;font-weight:700;color:var(--text)">Comisión de managers</div>
+      <div class="iva-incluido-input" style="margin-top:0;display:flex;gap:10px;align-items:flex-end">
+        <div style="flex:1">
+          <label>¿Pasa por managers?</label>
+          <select id="comisionAplica" style="width:100%;padding:8px 12px;border:1.5px solid rgba(200,200,230,.5);border-radius:10px;font-size:14px;font-family:inherit;outline:none" onchange="toggleComisionPct()">
+            <option value="si">Sí, se lleva comisión</option>
+            <option value="no">No, cobro directo</option>
+          </select>
+        </div>
+        <div style="flex:1" id="comisionPctWrap">
+          <label>% comisión</label>
+          <input type="number" id="comisionPctVal" step="0.5" min="0" max="50" value="20">
+        </div>
+      </div>
     </div>
+
     <button class="iva-confirm-btn" id="ivaConfirmBtn" onclick="confirmIVA()">Confirmar y guardar</button>
   </div>
 </div>
@@ -533,7 +641,10 @@
 const GOAL     = 50000;
 const MONTHS   = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MONTHS_S = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const VISIBLE_MONTHS = [5,6,7,8];
+const VISIBLE_MONTHS = [3,4,5,6,7,8];
+// Meses que se registran (para IVA/IRPF) pero no cuentan en balance/gráfica
+const EXCLUDED_BALANCE_MONTHS = [{y:2026,m:3}];
+const isExcludedMonth = (y,m) => EXCLUDED_BALANCE_MONTHS.some(e=>e.y===y&&e.m===m);
 
 const GASTOS_FIJOS = [
   { nombre:'Alquiler',            cat:'alquiler',      cantidad:650 },
@@ -548,7 +659,12 @@ const GASTOS_FIJOS = [
 ];
 const TOTAL_FIJOS = GASTOS_FIJOS.reduce((s,g)=>s+g.cantidad,0);
 
-const PENDIENTES = [
+// Estudio: factura total 210€ (3 personas a 73€), pero la factura va a tu nombre →
+// te desgravas el 21% del total, no solo de tu parte.
+const ESTUDIO_FACTURA_TOTAL = 210;
+const ESTUDIO_IVA = parseFloat((ESTUDIO_FACTURA_TOTAL*0.21).toFixed(2));
+
+const PENDIENTES_DEFAULT = [
   { desc:'Deal Publishing',                  cantidad:15000, iva:0,   estado:'pendiente', cuando:'Agosto est.'  },
   { desc:'Conciertos D.Valentino (mayo)',     cantidad:3000,  iva:630, estado:'pendiente', cuando:'Julio est.'   },
   { desc:'Regalías Q1 D.Valentino',          cantidad:2400,  iva:0,   estado:'pendiente', cuando:'Fin de junio' },
@@ -588,15 +704,27 @@ const COLORS_GAS = {
 // ================================================================
 
 function migrate() {
-  // compra-casa → gastos-casa
+  // compra-casa → gastos-casa + defaults de IVA deducible
   const gastos = getGastos();
   let changed = false;
-  gastos.forEach(g => { if(g.categoria==='compra-casa'){ g.categoria='gastos-casa'; changed=true; } });
+  gastos.forEach(g => {
+    if(g.categoria==='compra-casa'){ g.categoria='gastos-casa'; changed=true; }
+    if(g.ivaDeducible===undefined){ g.ivaDeducible=false; changed=true; }
+    if(g.ivaRatePct===undefined){ g.ivaRatePct=21; changed=true; }
+    if(g.descripcion==='Estudio' && g.ivaOverride===undefined){ g.ivaOverride=(g.iva&&g.iva>0)?g.iva:ESTUDIO_IVA; changed=true; }
+  });
   if (changed) saveGastos(gastos);
 
+  // compra-casa → gastos-casa + recalculo con sistema de IRPF/en B (ingresos ya cargados)
   const ingresos = getIngresos();
   let changed2 = false;
-  ingresos.forEach(i => { if(i.categoria==='compra-casa'){ i.categoria='gastos-casa'; changed2=true; } });
+  ingresos.forEach(i => {
+    if(i.categoria==='compra-casa'){ i.categoria='gastos-casa'; changed2=true; }
+    if(i.irpfPct===undefined){ i.irpfPct=7; changed2=true; }
+    if(i.enB===undefined){ i.enB=false; changed2=true; }
+    if(i.tieneComision===undefined){ i.tieneComision=false; changed2=true; }
+    if(i.comisionPct===undefined){ i.comisionPct=20; changed2=true; }
+  });
   if (changed2) saveIngresos(ingresos);
 }
 
@@ -606,9 +734,9 @@ function seedIfNeeded() {
   const ing = [];
 
   ['2026-06-30','2026-07-31','2026-08-31','2026-09-30'].forEach(f => {
-    ing.push({id:id++,fecha:f,descripcion:'D.Valentino',categoria:'regalias',cantidad:800,iva:0});
-    ing.push({id:id++,fecha:f,descripcion:'Bluu',categoria:'regalias',cantidad:300,iva:0});
-    ing.push({id:id++,fecha:f,descripcion:'Otros artistas',categoria:'regalias',cantidad:100,iva:0});
+    ing.push({id:id++,fecha:f,descripcion:'D.Valentino',categoria:'regalias',cantidad:800,iva:0,irpfPct:7,enB:false});
+    ing.push({id:id++,fecha:f,descripcion:'Bluu',categoria:'regalias',cantidad:300,iva:0,irpfPct:7,enB:false});
+    ing.push({id:id++,fecha:f,descripcion:'Otros artistas',categoria:'regalias',cantidad:100,iva:0,irpfPct:7,enB:false});
   });
 
   [
@@ -620,17 +748,50 @@ function seedIfNeeded() {
     ['2026-08-27','D.Valentino',500,105],['2026-08-29','D.Valentino',500,105],['2026-08-30','D.Valentino',500,105],
     ['2026-09-01','D.Valentino',500,105],['2026-09-17','Tarchi',400,84],
     ['2026-09-18','D.Valentino',500,105],['2026-09-19','D.Valentino',500,105],
-  ].forEach(([f,d,c,v])=>ing.push({id:id++,fecha:f,descripcion:d,categoria:'directo',cantidad:c,iva:v}));
+  ].forEach(([f,d,c,v])=>ing.push({id:id++,fecha:f,descripcion:d,categoria:'directo',cantidad:c,iva:v,irpfPct:7,enB:false}));
 
   [
     ['2026-06-20','Residente La3',230],['2026-07-05','Residente La3',230],
     ['2026-07-18','DJ Set',200],['2026-07-25','DJ Set',200],
     ['2026-08-15','Residente La3',230],['2026-09-12','Residente La3',230],
-  ].forEach(([f,d,c])=>ing.push({id:id++,fecha:f,descripcion:d,categoria:'djsets',cantidad:c,iva:0}));
+  ].forEach(([f,d,c])=>ing.push({id:id++,fecha:f,descripcion:d,categoria:'djsets',cantidad:c,iva:0,irpfPct:7,enB:false}));
 
   saveIngresos(ing);
   localStorage.setItem('17f_nextId', id.toString());
   localStorage.setItem('17f_seeded','1');
+}
+
+function migratePatrimonio() {
+  const raw = localStorage.getItem('17f_patrimonio');
+  let p = raw?JSON.parse(raw):null;
+  if (!p || p.cuenta1!==undefined || !p.fechaRef) {
+    const planAhorro = (p&&p.planAhorro!==undefined)?p.planAhorro:600;
+    const cripto = (p&&p.cripto!==undefined)?p.cripto:300;
+    p = { banco:24428.01, planAhorro, cripto, fechaRef:new Date().toISOString().split('T')[0] };
+    savePatrimonio(p);
+  }
+}
+
+function backfillQ2FixedCosts() {
+  if (localStorage.getItem('17f_q2backfill')) return;
+  const dates = ['2026-04-01','2026-05-01','2026-06-01'];
+  const gastos = getGastos();
+  dates.forEach(fecha=>{
+    gastos.push({id:nextId(),cantidad:15,categoria:'suscripciones',descripcion:'Splice',fecha,ivaDeducible:false,ivaRatePct:21});
+    gastos.push({id:nextId(),cantidad:12,categoria:'suscripciones',descripcion:'Dropbox',fecha,ivaDeducible:false,ivaRatePct:21});
+    gastos.push({id:nextId(),cantidad:73,categoria:'otros',descripcion:'Estudio',fecha,ivaDeducible:true,ivaRatePct:21,ivaOverride:ESTUDIO_IVA});
+  });
+  saveGastos(gastos);
+  localStorage.setItem('17f_q2backfill','1');
+}
+
+function seedPendientesIfNeeded() {
+  if (localStorage.getItem('17f_pend_seeded')) return;
+  let id = parseInt(localStorage.getItem('17f_nextId')||'1');
+  const list = PENDIENTES_DEFAULT.map(p=>({id:id++, ...p}));
+  savePendientes(list);
+  localStorage.setItem('17f_nextId', id.toString());
+  localStorage.setItem('17f_pend_seeded','1');
 }
 
 // ================================================================
@@ -646,17 +807,22 @@ let modalMode = null;
 let editingId = null;
 let pendingIngreso = null;
 let ivaMode = null; // 'incluido' | 'aparte' | 'sin'
+let enBSelected = false;
+let pendienteBeingConverted = null;
+let projMonths = new Set(); // nunca se persiste — se reinicia cada carga
 
 // ================================================================
 // STORAGE
 // ================================================================
 
-const getPatrimonio  = () => { const s=localStorage.getItem('17f_patrimonio'); return s?JSON.parse(s):{cuenta1:3200,cuenta2:17900,planAhorro:600,cripto:300}; };
+const getPatrimonio  = () => { const s=localStorage.getItem('17f_patrimonio'); return s?JSON.parse(s):{banco:24428.01,planAhorro:600,cripto:300,fechaRef:new Date().toISOString().split('T')[0]}; };
 const savePatrimonio = p => localStorage.setItem('17f_patrimonio',JSON.stringify(p));
 const getIngresos    = () => { const s=localStorage.getItem('17f_ingresos');  return s?JSON.parse(s):[]; };
 const saveIngresos   = g => localStorage.setItem('17f_ingresos',JSON.stringify(g));
 const getGastos      = () => { const s=localStorage.getItem('17f_gastos');    return s?JSON.parse(s):[]; };
 const saveGastos     = g => localStorage.setItem('17f_gastos',JSON.stringify(g));
+const getPendientes  = () => { const s=localStorage.getItem('17f_pendientes'); return s?JSON.parse(s):[]; };
+const savePendientes = p => localStorage.setItem('17f_pendientes',JSON.stringify(p));
 const nextId         = () => { const n=parseInt(localStorage.getItem('17f_nextId')||'1'); localStorage.setItem('17f_nextId',n+1); return n; };
 
 // ================================================================
@@ -668,16 +834,110 @@ const fmt2 = n => new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'
 
 const ingByMonth  = (m,y) => getIngresos().filter(i=>{const d=new Date(i.fecha);return d.getMonth()===m&&d.getFullYear()===y;});
 const gasByMonth  = (m,y) => getGastos().filter(g=>{const d=new Date(g.fecha);return d.getMonth()===m&&d.getFullYear()===y;});
-const totalIngMes = (m,y) => ingByMonth(m,y).reduce((s,i)=>s+i.cantidad,0);
-const totalGasMes = (m,y) => gasByMonth(m,y).reduce((s,g)=>s+parseFloat(g.cantidad),0)+TOTAL_FIJOS;
+
+// IRPF retenido sobre un ingreso (0 si está pagado en B)
+function irpfDe(i) {
+  if(i.enB) return 0;
+  return parseFloat((i.cantidad * ((i.irpfPct||0)/100)).toFixed(2));
+}
+// Comisión de managers sobre el fee bruto (0 si está pagado en B o no aplica)
+function comisionDe(i) {
+  if(i.enB || !i.tieneComision) return 0;
+  return parseFloat((i.cantidad * ((i.comisionPct||0)/100)).toFixed(2));
+}
+// Neto real que aterriza en cuenta (bruto - IRPF - comisión), salvo en B que es el 100%
+function netoIngreso(i) {
+  return i.enB ? i.cantidad : parseFloat((i.cantidad - irpfDe(i) - comisionDe(i)).toFixed(2));
+}
+
+const totalIngMes = (m,y) => ingByMonth(m,y).reduce((s,i)=>s+netoIngreso(i),0);
+
+const pad2 = n => String(n).padStart(2,'0');
+const monthKey = (y,m) => `${y}-${pad2(m+1)}`;
+const monthAutogenned = (y,m) => localStorage.getItem('17f_autogen_'+monthKey(y,m))==='1';
+
+const totalGasMes = (m,y) => {
+  const varSum = gasByMonth(m,y).reduce((s,g)=>s+parseFloat(g.cantidad),0);
+  return monthAutogenned(y,m) ? varSum : varSum+TOTAL_FIJOS;
+};
+
+// Un mes "ha pasado" cuando ya no es el mes actual ni uno futuro
+function monthSettled(y,m) {
+  const today=new Date();
+  return (y<today.getFullYear()) || (y===today.getFullYear() && m<today.getMonth());
+}
+
+// Patrimonio derivado: saldo base + meses YA CERRADOS desde la fecha de referencia.
+// El mes en curso no se contabiliza todavía (aunque ya tengas facturas mandadas sin cobrar).
+function computePatrimonioTotal() {
+  const p = getPatrimonio();
+  const ref = new Date(p.fechaRef+'T00:00:00');
+  const refY=ref.getFullYear(), refM=ref.getMonth();
+  const inRange = (fecha) => {
+    const d=new Date(fecha+'T12:00:00'), y=d.getFullYear(), m=d.getMonth();
+    if (isExcludedMonth(y,m)) return false;
+    if (y<refY || (y===refY && m<refM)) return false; // anterior al snapshot, ya contado
+    return monthSettled(y,m); // solo cuenta si el mes ya cerró
+  };
+  const ingDelta = getIngresos().filter(i=>inRange(i.fecha)).reduce((s,i)=>s+netoIngreso(i),0);
+  const gasDelta = getGastos().filter(g=>inRange(g.fecha)).reduce((s,g)=>s+parseFloat(g.cantidad),0);
+  const banco = parseFloat((p.banco+ingDelta-gasDelta).toFixed(2));
+  const total = parseFloat((banco+p.planAhorro+p.cripto).toFixed(2));
+  return {banco, planAhorro:p.planAhorro, cripto:p.cripto, total};
+}
+
+// IVA pendiente de pagar del trimestre fiscal real en curso (informativo, nunca se resta del total)
+function getPendingIVANote() {
+  const today=new Date();
+  const trim = today.getMonth()<=5 ? 2 : 3;
+  const {resultado} = getIVATrimestre(trim);
+  return resultado>0 ? resultado : 0;
+}
+
+// Genera automáticamente los gastos fijos (incl. plan ahorro) el día 1 de cada mes que ya haya llegado
+function autogenFixedCosts() {
+  const p = getPatrimonio();
+  const ref = new Date(p.fechaRef+'T00:00:00');
+  const today = new Date();
+  const todayMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  let cursor = new Date(ref.getFullYear(), ref.getMonth()+1, 1);
+  while (cursor <= todayMonthStart) {
+    const y=cursor.getFullYear(), m=cursor.getMonth();
+    if (!monthAutogenned(y,m)) {
+      const dateStr = `${y}-${pad2(m+1)}-01`;
+      const gastos = getGastos();
+      GASTOS_FIJOS.forEach(item=>{
+        const isEstudio = item.nombre==='Estudio';
+        gastos.push({id:nextId(),cantidad:item.cantidad,categoria:item.cat,descripcion:item.nombre+' (auto)',fecha:dateStr,ivaDeducible:isEstudio,ivaRatePct:21,ivaOverride:isEstudio?ESTUDIO_IVA:undefined});
+      });
+      saveGastos(gastos);
+      const planItem = GASTOS_FIJOS.find(it=>it.cat==='plan-ahorro');
+      if (planItem) {
+        const pat = getPatrimonio();
+        pat.planAhorro = parseFloat((pat.planAhorro+planItem.cantidad).toFixed(2));
+        savePatrimonio(pat);
+      }
+      localStorage.setItem('17f_autogen_'+monthKey(y,m),'1');
+    }
+    cursor = new Date(y, m+1, 1);
+  }
+}
+
+// IVA deducible de un gasto: override fijo (caso estudio) o % de IVA sobre la cantidad
+function ivaDeducibleDe(g) {
+  if (!g.ivaDeducible) return 0;
+  if (g.ivaOverride!==undefined) return g.ivaOverride;
+  return parseFloat((g.cantidad*((g.ivaRatePct!==undefined?g.ivaRatePct:21)/100)).toFixed(2));
+}
 
 function getIVATrimestre(trim) {
   const months = trim===2?[3,4,5]:[6,7,8];
-  const ivaRep = getIngresos()
-    .filter(i=>{const d=new Date(i.fecha);return months.includes(d.getMonth())&&d.getFullYear()===2026&&i.iva>0;})
-    .reduce((s,i)=>s+i.iva,0);
-  const ivaSop = (15+12+73)*months.length*0.21;
-  return {ivaRep, ivaSop, resultado:ivaRep-ivaSop};
+  const itemsTrim = getIngresos().filter(i=>{const d=new Date(i.fecha);return months.includes(d.getMonth())&&d.getFullYear()===2026;});
+  const ivaRep = itemsTrim.filter(i=>i.iva>0).reduce((s,i)=>s+i.iva,0);
+  const gastosTrim = getGastos().filter(g=>{const d=new Date(g.fecha);return months.includes(d.getMonth())&&d.getFullYear()===2026;});
+  const ivaSop = gastosTrim.reduce((s,g)=>s+ivaDeducibleDe(g),0);
+  const irpfRet = itemsTrim.reduce((s,i)=>s+irpfDe(i),0);
+  return {ivaRep, ivaSop, resultado:ivaRep-ivaSop, irpfRet};
 }
 
 // Format YYYY-MM-DD → "17 Jun 2026"
@@ -719,24 +979,25 @@ function drawPieSVG(svgEl, legendEl, data) {
   });
   svgEl.innerHTML=paths+`<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="11" fill="#6b7280" font-family="system-ui">${fmt(total)}</text>`;
   legendEl.innerHTML=data.filter(d=>d.value>0).map(d=>
-    `<div class="legend-row"><div class="legend-dot" style="background:${d.color}"></div><span style="color:var(--text-2);font-size:12px">${d.label}</span><span class="legend-pct">${((d.value/total)*100).toFixed(1)}%</span></div>`
+    `<div class="legend-row"><div class="legend-dot" style="background:${d.color}"></div><span style="color:var(--text-2);font-size:12px">${d.label} · ${fmt(d.value)}</span><span class="legend-pct">${((d.value/total)*100).toFixed(1)}%</span></div>`
   ).join('');
 }
 
 function drawBarChart(svgEl) {
-  const ingData=VISIBLE_MONTHS.map(m=>totalIngMes(m,2026));
-  const gasData=VISIBLE_MONTHS.map(m=>totalGasMes(m,2026));
+  const months=VISIBLE_MONTHS.filter(m=>!isExcludedMonth(2026,m));
+  const ingData=months.map(m=>totalIngMes(m,2026));
+  const gasData=months.map(m=>totalGasMes(m,2026));
   const maxVal=Math.max(...ingData,...gasData,1000);
   const W=680,H=180,padL=60,padR=20,padT=10,padB=40;
   const chartW=W-padL-padR,chartH=H-padT-padB;
-  const groupW=chartW/VISIBLE_MONTHS.length;
+  const groupW=chartW/months.length;
   let html=`<rect x="${padL}" y="${padT}" width="${chartW}" height="${chartH}" fill="rgba(0,0,0,0.02)" rx="8"/>`;
   [0.25,0.5,0.75,1].forEach(f=>{
     const y=padT+chartH*(1-f),val=maxVal*f;
     html+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>`;
     html+=`<text x="${padL-6}" y="${y+4}" text-anchor="end" font-size="9.5" fill="#9ca3af" font-family="system-ui">${val>=1000?(val/1000).toFixed(0)+'k':val}€</text>`;
   });
-  VISIBLE_MONTHS.forEach((m,i)=>{
+  months.forEach((m,i)=>{
     const gx=padL+i*groupW,ingH=(ingData[i]/maxVal)*chartH,gasH=(gasData[i]/maxVal)*chartH;
     const bW=Math.min(groupW*0.32,30),gap=bW*0.45,cx=gx+groupW/2;
     html+=`<rect x="${cx-gap-bW}" y="${padT+chartH-ingH}" width="${bW}" height="${ingH}" fill="#22c55e" opacity="0.82" rx="4"/>`;
@@ -821,8 +1082,32 @@ function showIVAPopup(amount) {
   document.getElementById('ivaIncluidoInput').style.display='none';
   document.getElementById('ivaConfirmBtn').style.display='none';
   document.getElementById('ivaIncluidoVal').value='';
+  document.getElementById('irpfAplica').value='si';
+  document.getElementById('irpfPctVal').value='7';
+  document.getElementById('irpfPctWrap').style.display='block';
+  document.getElementById('comisionAplica').value='si';
+  document.getElementById('comisionPctVal').value='20';
+  document.getElementById('comisionPctWrap').style.display='block';
+  document.getElementById('facturaSection').style.display='block';
+  document.getElementById('enBCheck').textContent='';
   ivaMode=null;
+  enBSelected=false;
   document.getElementById('ivaPopup').classList.add('open');
+}
+
+function toggleEnB() {
+  enBSelected=!enBSelected;
+  document.getElementById('enBCheck').textContent=enBSelected?'✓':'';
+  document.getElementById('facturaSection').style.display=enBSelected?'none':'block';
+  document.getElementById('ivaConfirmBtn').style.display=enBSelected?'block':(ivaMode?'block':'none');
+}
+
+function toggleIrpfPct() {
+  document.getElementById('irpfPctWrap').style.display = document.getElementById('irpfAplica').value==='si' ? 'block':'none';
+}
+
+function toggleComisionPct() {
+  document.getElementById('comisionPctWrap').style.display = document.getElementById('comisionAplica').value==='si' ? 'block':'none';
 }
 
 function selectIVAOpt(mode) {
@@ -834,30 +1119,45 @@ function selectIVAOpt(mode) {
     const ivaCalc=(amt*21/121).toFixed(2);
     document.getElementById('ivaIncluidoVal').value=ivaCalc;
     inclDiv.style.display='block';
-    confirmBtn.style.display='block';
   } else {
     inclDiv.style.display='none';
-    confirmBtn.style.display='block';
   }
+  confirmBtn.style.display='block';
 }
 
 function confirmIVA() {
-  if(!pendingIngreso||!ivaMode)return;
+  if(!pendingIngreso)return;
   const{amount,cat,desc,date}=pendingIngreso;
-  let neto=amount,iva=0;
 
-  if(ivaMode==='incluido'){
-    iva=parseFloat(document.getElementById('ivaIncluidoVal').value)||0;
-    neto=parseFloat((amount-iva).toFixed(2));
-  } else if(ivaMode==='aparte'){
-    iva=parseFloat((amount*0.21).toFixed(2));
-    neto=amount;
+  if(enBSelected){
+    const list=getIngresos();
+    list.push({id:nextId(),fecha:date,descripcion:desc||(CAT_ING_LABELS[cat]||cat),categoria:cat,cantidad:amount,iva:0,irpfPct:0,enB:true,tieneComision:false,comisionPct:0});
+    saveIngresos(list);
+  } else {
+    if(!ivaMode)return;
+    let bruto=amount,iva=0;
+    if(ivaMode==='incluido'){
+      iva=parseFloat(document.getElementById('ivaIncluidoVal').value)||0;
+      bruto=parseFloat((amount-iva).toFixed(2)); // base sin IVA
+    } else if(ivaMode==='aparte'){
+      iva=parseFloat((amount*0.21).toFixed(2));
+      bruto=amount;
+    }
+    // 'sin' → bruto=amount, iva=0
+    const irpfAplica=document.getElementById('irpfAplica').value==='si';
+    const irpfPct=irpfAplica?(parseFloat(document.getElementById('irpfPctVal').value)||0):0;
+    const tieneComision=document.getElementById('comisionAplica').value==='si';
+    const comisionPct=tieneComision?(parseFloat(document.getElementById('comisionPctVal').value)||0):0;
+
+    const list=getIngresos();
+    list.push({id:nextId(),fecha:date,descripcion:desc||(CAT_ING_LABELS[cat]||cat),categoria:cat,cantidad:bruto,iva,irpfPct,enB:false,tieneComision,comisionPct});
+    saveIngresos(list);
   }
-  // 'sin' → neto=amount, iva=0
 
-  const list=getIngresos();
-  list.push({id:nextId(),fecha:date,descripcion:desc||(CAT_ING_LABELS[cat]||cat),categoria:cat,cantidad:neto,iva});
-  saveIngresos(list);
+  if(pendienteBeingConverted){
+    savePendientes(getPendientes().filter(p=>p.id!==pendienteBeingConverted));
+    pendienteBeingConverted=null;
+  }
 
   closeIVAPopup();
   pendingIngreso=null;
@@ -868,23 +1168,133 @@ function confirmIVA() {
   renderIngresos();
 }
 
+function marcarPendienteCobrado(id) {
+  const p=getPendientes().find(x=>x.id===id);
+  if(!p) return;
+  closeModal();
+  switchTab('ingresos');
+  document.getElementById('ingAmount').value=p.cantidad;
+  document.getElementById('ingDesc').value=p.desc;
+  document.getElementById('ingCat').value='otros-ing';
+  const todayStr=new Date().toISOString().split('T')[0];
+  document.getElementById('ingDate').dataset.raw=todayStr;
+  document.getElementById('ingDate').value=fmtDateStr(todayStr);
+  pendienteBeingConverted=id;
+  addIngreso();
+}
+
 function closeIVAPopup(){
   document.getElementById('ivaPopup').classList.remove('open');
   ivaMode=null;
+  enBSelected=false;
 }
 
 document.getElementById('ivaPopup').addEventListener('click',e=>{if(e.target===e.currentTarget)closeIVAPopup();});
 
 // ================================================================
+// PATRIMONIO PROYECTADO
+// ================================================================
+
+function openProjPopup() {
+  const months = VISIBLE_MONTHS.filter(m=>!isExcludedMonth(2026,m));
+  document.getElementById('projMonthsList').innerHTML = months.map(m=>{
+    const neto = totalIngMes(m,2026)-totalGasMes(m,2026);
+    return `<label style="display:flex;align-items:center;gap:10px;padding:9px 0;cursor:pointer;border-bottom:1px solid rgba(0,0,0,.045)">
+      <input type="checkbox" style="width:16px;height:16px" ${projMonths.has(m)?'checked':''} onchange="toggleProjMonth(${m},this.checked)">
+      <span style="font-size:14px;font-weight:600">${MONTHS[m]}</span>
+      <span style="margin-left:auto;font-size:13px;color:${neto>=0?'var(--green)':'var(--red)'}">${neto>=0?'+':''}${fmt(neto)}</span>
+    </label>`;
+  }).join('');
+  document.getElementById('projPopup').classList.add('open');
+}
+
+function closeProjPopup() {
+  document.getElementById('projPopup').classList.remove('open');
+}
+
+function toggleProjMonth(m, checked) {
+  if (checked) projMonths.add(m); else projMonths.delete(m);
+  renderProjeccion();
+}
+
+function renderProjeccion() {
+  const wrap=document.getElementById('projResult');
+  if (!projMonths.size) { wrap.style.display='none'; return; }
+  const pt=computePatrimonioTotal();
+  let extra=0;
+  projMonths.forEach(m=>{ extra += totalIngMes(m,2026)-totalGasMes(m,2026); });
+  document.getElementById('projValue').textContent=fmt(pt.total+extra);
+  wrap.style.display='block';
+}
+
+document.getElementById('projPopup').addEventListener('click',e=>{if(e.target===e.currentTarget)closeProjPopup();});
+
+// ================================================================
 // MODAL (edit)
 // ================================================================
+
+function toggleModalEnB() {
+  const enB = document.getElementById('mEnB').checked;
+  document.getElementById('mIvaGroup').style.display = enB?'none':'flex';
+  document.getElementById('mIrpfGroup').style.display = enB?'none':'flex';
+  document.getElementById('mComisionToggleGroup').style.display = enB?'none':'flex';
+  document.getElementById('mComisionGroup').style.display = (enB||!document.getElementById('mTieneComision').checked)?'none':'flex';
+  updateIrpfPreview();
+}
+
+function toggleModalComision() {
+  document.getElementById('mComisionGroup').style.display = document.getElementById('mTieneComision').checked?'flex':'none';
+  updateIrpfPreview();
+}
+
+function toggleModalGasIva() {
+  document.getElementById('mGasIvaGroup').style.display = document.getElementById('mGasIvaDeducible').checked?'flex':'none';
+  updateIrpfPreview();
+}
+
+function updateIrpfPreview() {
+  const cantidad = parseFloat(document.getElementById('mCantidad').value)||0;
+  const pct = parseFloat(document.getElementById('mIrpfPct').value)||0;
+  document.getElementById('mIrpfPreview').textContent = fmt2(cantidad*pct/100);
+  const comisionPct = parseFloat(document.getElementById('mComisionPct').value)||0;
+  document.getElementById('mComisionPreview').textContent = fmt2(cantidad*comisionPct/100);
+  const ivaRatePct = parseFloat(document.getElementById('mGasIvaRatePct').value)||0;
+  document.getElementById('mGasIvaPreview').textContent = fmt2(cantidad*ivaRatePct/100);
+}
 
 function openModal(mode,id) {
   modalMode=mode; editingId=id;
   document.getElementById('modalOverlay').classList.add('open');
+  // reset shared groups visibility
+  document.getElementById('mFechaGroup').style.display = mode==='pendiente'?'none':'flex';
+  document.getElementById('mCatGroup').style.display = mode==='pendiente'?'none':'flex';
+  document.getElementById('mPendEstadoGroup').style.display = mode==='pendiente'?'flex':'none';
+  document.getElementById('mPendCuandoGroup').style.display = mode==='pendiente'?'flex':'none';
+  document.getElementById('btnMarcarCobrado').style.display = (mode==='pendiente'&&id)?'inline-block':'none';
+  document.getElementById('mGasIvaToggleGroup').style.display = mode==='gasto'?'flex':'none';
+  document.getElementById('mGasIvaDeducible').disabled=false;
+  document.getElementById('mGasIvaOverrideNote').style.display='none';
+
+  if(mode==='pendiente'){
+    document.getElementById('modalTitle').textContent = id?'Editar pendiente':'Nuevo pendiente';
+    document.getElementById('mEnBGroup').style.display='none';
+    document.getElementById('mIrpfGroup').style.display='none';
+    document.getElementById('mComisionToggleGroup').style.display='none';
+    document.getElementById('mComisionGroup').style.display='none';
+    document.getElementById('mGasIvaGroup').style.display='none';
+    document.getElementById('mIvaGroup').style.display='flex';
+    const item = id ? getPendientes().find(p=>p.id===id) : null;
+    document.getElementById('mDesc').value = item?item.desc:'';
+    document.getElementById('mCantidad').value = item?item.cantidad:'';
+    document.getElementById('mIva').value = item?(item.iva||0):0;
+    document.getElementById('mPendEstado').value = item?item.estado:'pendiente';
+    document.getElementById('mPendCuando').value = item?item.cuando:'';
+    return;
+  }
   if(mode==='ingreso'){
     document.getElementById('modalTitle').textContent='Editar ingreso';
-    document.getElementById('mIvaGroup').style.display='flex';
+    document.getElementById('mGasIvaGroup').style.display='none';
+    document.getElementById('mEnBGroup').style.display='flex';
     document.getElementById('mCat').innerHTML=Object.entries(CAT_ING_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
     const item=getIngresos().find(i=>i.id===id);
     if(item){
@@ -894,11 +1304,24 @@ function openModal(mode,id) {
       document.getElementById('mCat').value=item.categoria;
       document.getElementById('mCantidad').value=item.cantidad;
       document.getElementById('mIva').value=item.iva||0;
+      document.getElementById('mIrpfPct').value=item.irpfPct!==undefined?item.irpfPct:7;
+      document.getElementById('mEnB').checked=!!item.enB;
+      document.getElementById('mTieneComision').checked=!!item.tieneComision;
+      document.getElementById('mComisionPct').value=item.comisionPct!==undefined?item.comisionPct:20;
+      document.getElementById('mIvaGroup').style.display=item.enB?'none':'flex';
+      document.getElementById('mIrpfGroup').style.display=item.enB?'none':'flex';
+      document.getElementById('mComisionToggleGroup').style.display=item.enB?'none':'flex';
+      document.getElementById('mComisionGroup').style.display=(item.enB||!item.tieneComision)?'none':'flex';
+      updateIrpfPreview();
     }
   } else {
     document.getElementById('modalTitle').textContent='Editar gasto';
+    document.getElementById('mEnBGroup').style.display='none';
     document.getElementById('mIvaGroup').style.display='none';
-    document.getElementById('mCat').innerHTML=Object.entries(CAT_GAS_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+    document.getElementById('mIrpfGroup').style.display='none';
+    document.getElementById('mComisionToggleGroup').style.display='none';
+    document.getElementById('mComisionGroup').style.display='none';
+    document.getElementById('mCat').innerHTML=Object.entries({...CAT_GAS_LABELS,...CAT_FIJOS_EXTRA}).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
     const item=getGastos().find(g=>g.id===id);
     if(item){
       const mf=document.getElementById('mFecha');
@@ -906,6 +1329,17 @@ function openModal(mode,id) {
       document.getElementById('mDesc').value=item.descripcion;
       document.getElementById('mCat').value=item.categoria;
       document.getElementById('mCantidad').value=item.cantidad;
+      document.getElementById('mGasIvaDeducible').checked=!!item.ivaDeducible;
+      document.getElementById('mGasIvaRatePct').value=item.ivaRatePct!==undefined?item.ivaRatePct:21;
+      const hasOverride=item.ivaOverride!==undefined;
+      document.getElementById('mGasIvaDeducible').disabled=hasOverride;
+      document.getElementById('mGasIvaGroup').style.display=(item.ivaDeducible&&!hasOverride)?'flex':'none';
+      document.getElementById('mGasIvaOverrideNote').style.display=hasOverride?'block':'none';
+      if(hasOverride){
+        document.getElementById('mGasIvaPreview').textContent=fmt2(item.ivaOverride);
+      } else {
+        updateIrpfPreview();
+      }
     }
   }
 }
@@ -916,22 +1350,52 @@ function closeModal(){
 }
 
 function saveModalItem(){
+  const desc=document.getElementById('mDesc').value.trim();
+  const cantidad=parseFloat(document.getElementById('mCantidad').value);
+
+  if(modalMode==='pendiente'){
+    if(!desc||!cantidad){alert('Faltan descripción o cantidad.');return;}
+    const iva=parseFloat(document.getElementById('mIva').value)||0;
+    const estado=document.getElementById('mPendEstado').value;
+    const cuando=document.getElementById('mPendCuando').value.trim();
+    const list=getPendientes();
+    if(editingId){
+      savePendientes(list.map(p=>p.id===editingId?{...p,desc,cantidad,iva,estado,cuando}:p));
+    } else {
+      list.push({id:nextId(),desc,cantidad,iva,estado,cuando});
+      savePendientes(list);
+    }
+    closeModal();render();
+    return;
+  }
+
   const mf=document.getElementById('mFecha');
   const fecha=mf.dataset.raw||'';
-  const desc=document.getElementById('mDesc').value.trim();
   const cat=document.getElementById('mCat').value;
-  const cantidad=parseFloat(document.getElementById('mCantidad').value);
   if(!fecha||!cantidad){alert('Faltan fecha o cantidad.');return;}
   if(modalMode==='ingreso'){
-    const iva=parseFloat(document.getElementById('mIva').value)||0;
-    saveIngresos(getIngresos().map(i=>i.id===editingId?{...i,fecha,descripcion:desc,categoria:cat,cantidad,iva}:i));
+    const enB=document.getElementById('mEnB').checked;
+    const iva=enB?0:(parseFloat(document.getElementById('mIva').value)||0);
+    const irpfPct=enB?0:(parseFloat(document.getElementById('mIrpfPct').value)||0);
+    const tieneComision=enB?false:document.getElementById('mTieneComision').checked;
+    const comisionPct=tieneComision?(parseFloat(document.getElementById('mComisionPct').value)||0):0;
+    saveIngresos(getIngresos().map(i=>i.id===editingId?{...i,fecha,descripcion:desc,categoria:cat,cantidad,iva,irpfPct,enB,tieneComision,comisionPct}:i));
   } else {
-    saveGastos(getGastos().map(g=>g.id===editingId?{...g,fecha,descripcion:desc,categoria:cat,cantidad}:g));
+    const ivaDeducible=document.getElementById('mGasIvaDeducible').checked;
+    const ivaRatePct=parseFloat(document.getElementById('mGasIvaRatePct').value)||21;
+    saveGastos(getGastos().map(g=>g.id===editingId?{...g,fecha,descripcion:desc,categoria:cat,cantidad,ivaDeducible,ivaRatePct}:g));
   }
   closeModal();render();
 }
 
 function deleteModalItem(){
+  if(modalMode==='pendiente'){
+    if(!editingId){closeModal();return;}
+    if(!confirm('¿Eliminar este pendiente?'))return;
+    savePendientes(getPendientes().filter(p=>p.id!==editingId));
+    closeModal();render();
+    return;
+  }
   if(!confirm('¿Eliminar este ítem?'))return;
   if(modalMode==='ingreso')saveIngresos(getIngresos().filter(i=>i.id!==editingId));
   else saveGastos(getGastos().filter(g=>g.id!==editingId));
@@ -970,8 +1434,10 @@ function renderGastosFijosHTML(){
 }
 
 function renderPendientesHTML(){
-  return PENDIENTES.map(p=>
-    `<div class="pend-item"><div style="display:flex;justify-content:space-between;align-items:flex-start">
+  const list=getPendientes();
+  if(!list.length) return '<div class="empty">Sin pendientes. Añade uno abajo.</div><div style="margin-top:8px"><button class="btn-add" style="width:100%" onclick="openModal(\'pendiente\',null)">+ Añadir pendiente</button></div>';
+  return list.map(p=>
+    `<div class="pend-item clickable" onclick="openModal('pendiente',${p.id})"><div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div><div style="font-size:13px;font-weight:600">${p.desc}</div>
       <div style="font-size:11px;color:var(--text-3);margin-top:2px">${p.cuando}${p.iva?` · +${fmt(p.iva)} IVA`:''}</div></div>
       <div style="text-align:right;margin-left:12px">
@@ -980,18 +1446,20 @@ function renderPendientesHTML(){
       </div></div></div>`
   ).join('')+
   `<div class="pend-item" style="border-top:1px solid rgba(0,0,0,.09);padding-top:12px;display:flex;justify-content:space-between">
-    <b>Total pendiente</b><span class="amount-total amount-green">${fmt(PENDIENTES.reduce((s,p)=>s+p.cantidad,0))}</span></div>
-  <p class="note">* IVA de conciertos no incluido hasta cobro</p>`;
+    <b>Total pendiente</b><span class="amount-total amount-green">${fmt(list.reduce((s,p)=>s+p.cantidad,0))}</span></div>
+  <p class="note">* IVA de conciertos no incluido hasta cobro</p>
+  <button class="btn-add" style="width:100%;margin-top:8px" onclick="openModal('pendiente',null)">+ Añadir pendiente</button>`;
 }
 
 function renderIVAHTML(trim){
-  const{ivaRep,ivaSop,resultado}=getIVATrimestre(trim);
+  const{ivaRep,ivaSop,resultado,irpfRet}=getIVATrimestre(trim);
   const label=trim===2?'Q2 · Abr–Jun':'Q3 · Jul–Sep';
   const decla=trim===2?'Julio 2026':'Octubre 2026';
   return `<div style="font-size:11.5px;color:var(--accent);font-weight:700;margin-bottom:12px">${label} · Declarar en ${decla}</div>
     <div class="iva-row"><span style="color:var(--text-2)">IVA repercutido</span><span style="color:var(--green)">+${fmt2(ivaRep)}</span></div>
     <div class="iva-row"><span style="color:var(--text-2)">IVA soportado</span><span style="color:var(--red)">-${fmt2(ivaSop)}</span></div>
     <div class="iva-row total"><span>A pagar a Hacienda</span><span style="color:var(--orange)">${fmt2(resultado)}</span></div>
+    <div class="iva-row" style="margin-top:10px"><span style="color:var(--text-2)">IRPF retenido este trimestre</span><span style="color:var(--text)">${fmt2(irpfRet)}</span></div>
     <p class="note">Estimación. Confirma con tu gestor.</p>`;
 }
 
@@ -1000,20 +1468,33 @@ function renderIVAHTML(trim){
 // ================================================================
 
 function renderResumen(){
-  const p=getPatrimonio(),total=p.cuenta1+p.cuenta2+p.planAhorro+p.cripto,pct=Math.min((total/GOAL)*100,100);
-  document.getElementById('totalPatrimonio').textContent=fmt(total);
+  const pt=computePatrimonioTotal(),pct=Math.min((pt.total/GOAL)*100,100);
+  document.getElementById('totalPatrimonio').textContent=fmt(pt.total);
+  const pendIVA=getPendingIVANote();
+  document.getElementById('ivaPendienteNote').textContent = pendIVA>0 ? `−${fmt(pendIVA)} pendientes de IVA a Hacienda este trimestre` : '';
   document.getElementById('progressPct').textContent=pct.toFixed(1)+'%';
   document.getElementById('progressFill').style.width=pct+'%';
-  document.getElementById('accountsRow').innerHTML=[['cuenta1','Cuenta 1'],['cuenta2','Cuenta 2'],['planAhorro','Plan ahorro'],['cripto','Cripto']]
-    .map(([k,l])=>`<div class="account-chip" onclick="editAccount('${k}')"><b>${fmt(p[k])}</b> ${l}</div>`).join('');
+  document.getElementById('accountsRow').innerHTML=[['banco','Banco',pt.banco],['planAhorro','Plan ahorro',pt.planAhorro],['cripto','Cripto',pt.cripto]]
+    .map(([k,l,v])=>`<div class="account-chip" onclick="editAccount('${k}')"><b>${fmt(v)}</b> ${l}</div>`).join('');
 
-  const ing=totalIngMes(selMonth,selYear),gas=totalGasMes(selMonth,selYear),bal=ing-gas;
-  document.getElementById('totalIngresos').textContent=fmt(ing);
-  document.getElementById('totalGastos').textContent=fmt(gas);
   const balEl=document.getElementById('balanceMes');
-  balEl.textContent=(bal>=0?'+':'-')+fmt(Math.abs(bal));
-  balEl.className='card-value '+(bal>=0?'green':'red');
-  document.getElementById('balanceSub').textContent=bal>=0?'Ahorrando este mes':'En negativo este mes';
+  const miniStats=document.querySelector('#tab-resumen .mini-stats');
+  if(isExcludedMonth(selYear,selMonth)){
+    balEl.textContent='No contabilizado';
+    balEl.className='card-value';
+    balEl.style.fontSize='22px';
+    document.getElementById('balanceSub').textContent='Mes solo registrado a efectos de IVA/IRPF';
+    miniStats.style.display='none';
+  } else {
+    balEl.style.fontSize='';
+    miniStats.style.display='flex';
+    const ing=totalIngMes(selMonth,selYear),gas=totalGasMes(selMonth,selYear),bal=ing-gas;
+    document.getElementById('totalIngresos').textContent=fmt(ing);
+    document.getElementById('totalGastos').textContent=fmt(gas);
+    balEl.textContent=(bal>=0?'+':'-')+fmt(Math.abs(bal));
+    balEl.className='card-value '+(bal>=0?'green':'red');
+    document.getElementById('balanceSub').textContent=bal>=0?'Ahorrando este mes':'En negativo este mes';
+  }
 
   buildMonthTabs('monthTabsR','selMonthR');
 
@@ -1025,9 +1506,13 @@ function renderResumen(){
     ingHtml+=`<div class="section-mini">${CAT_ING_LABELS[cat]||cat}</div>`;
     arr.forEach(i=>{
       const d=new Date(i.fecha+'T12:00:00');
+      const irpf=irpfDe(i), comision=comisionDe(i), neto=netoIngreso(i);
       ingHtml+=`<div class="list-item clickable" onclick="openModal('ingreso',${i.id})">
-        <div class="list-left"><span class="item-desc">${i.descripcion}</span><span class="item-date">${d.getDate()} ${MONTHS_S[d.getMonth()]}</span></div>
-        <span class="amount-green">${fmt(i.cantidad)}</span></div>`;
+        <div class="list-left">${i.enB?'<span class="badge badge-uncertain">B</span>':''}<span class="item-desc">${i.descripcion}</span><span class="item-date">${d.getDate()} ${MONTHS_S[d.getMonth()]}</span></div>
+        <div style="text-align:right">
+          <span class="amount-green">${fmt(neto)}</span>
+          ${irpf||comision?`<div class="item-date">${irpf?`-${fmt2(irpf)} IRPF `:''}${comision?`-${fmt2(comision)} mgr`:''}</div>`:''}
+        </div></div>`;
     });
   });
   document.getElementById('ingresosListR').innerHTML=ingHtml||'<div class="empty">Sin ingresos este mes</div>';
@@ -1041,6 +1526,7 @@ function renderResumen(){
   document.getElementById('gastosFijosR').innerHTML=renderGastosFijosHTML();
   document.getElementById('pendientesR').innerHTML=renderPendientesHTML();
   document.getElementById('ivaR').innerHTML=renderIVAHTML(selMonth<=5?2:3);
+  renderProjeccion();
 }
 
 // ================================================================
@@ -1054,7 +1540,7 @@ function renderIngresos(){
 
   const items=ingByMonth(selMonth,selYear);
   const bycat={};
-  items.forEach(i=>bycat[i.categoria]=(bycat[i.categoria]||0)+i.cantidad);
+  items.forEach(i=>bycat[i.categoria]=(bycat[i.categoria]||0)+netoIngreso(i));
   drawPieSVG(
     document.getElementById('pieIng'),document.getElementById('legendIng'),
     Object.entries(CAT_ING_LABELS).map(([k,l])=>({label:l,value:bycat[k]||0,color:COLORS_ING[k]}))
@@ -1070,15 +1556,21 @@ function renderIngresos(){
       html+=`<div class="section-mini">${CAT_ING_LABELS[cat]||cat}</div>`;
       arr.forEach(i=>{
         const d=new Date(i.fecha+'T12:00:00');
+        const irpf=irpfDe(i), comision=comisionDe(i), neto=netoIngreso(i);
         html+=`<div class="list-item clickable" onclick="openModal('ingreso',${i.id})">
-          <div class="list-left">${catBadge(i.categoria,true)}<span class="item-desc">${i.descripcion}</span><span class="item-date">${d.getDate()} ${MONTHS_S[d.getMonth()]}</span></div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="amount-green">${fmt(i.cantidad)}</span>
-            ${i.iva?`<span class="item-date">+${fmt(i.iva)} IVA</span>`:''}
+          <div class="list-left">${catBadge(i.categoria,true)}${i.enB?'<span class="badge badge-uncertain">B</span>':''}<span class="item-desc">${i.descripcion}</span><span class="item-date">${d.getDate()} ${MONTHS_S[d.getMonth()]}</span></div>
+          <div style="text-align:right">
+            <div><span class="amount-green">${fmt(neto)}</span>${i.iva?`<span class="item-date"> +${fmt(i.iva)} IVA</span>`:''}</div>
+            ${!i.enB?`<div class="item-date">bruto ${fmt(i.cantidad)}${irpf?` · -${fmt2(irpf)} IRPF`:''}${comision?` · -${fmt2(comision)} mgr`:''}</div>`:''}
           </div></div>`;
       });
     });
-    html+=`<div class="list-item" style="border-top:1px solid rgba(0,0,0,.09);margin-top:4px;padding-top:12px"><b>Total</b><span class="amount-total amount-green">${fmt(sorted.reduce((s,i)=>s+i.cantidad,0))}</span></div>`;
+    const totNeto=sorted.reduce((s,i)=>s+netoIngreso(i),0);
+    const totIrpf=sorted.reduce((s,i)=>s+irpfDe(i),0);
+    html+=`<div class="list-item" style="border-top:1px solid rgba(0,0,0,.09);margin-top:4px;padding-top:12px">
+      <b>Total neto</b>
+      <div style="text-align:right"><span class="amount-total amount-green">${fmt(totNeto)}</span>${totIrpf?`<div class="item-date">-${fmt2(totIrpf)} IRPF retenido</div>`:''}</div>
+    </div>`;
   }
   document.getElementById('ingresosList').innerHTML=html;
 }
@@ -1108,9 +1600,13 @@ function renderGastos(){
   else{
     sorted.forEach(g=>{
       const d=new Date(g.fecha+'T12:00:00');
+      const ivaDeducido = ivaDeducibleDe(g);
       html+=`<div class="list-item clickable" onclick="openModal('gasto',${g.id})">
         <div class="list-left">${catBadge(g.categoria)}<span class="item-desc">${g.descripcion||''}</span><span class="item-date">${d.getDate()} ${MONTHS_S[d.getMonth()]}</span></div>
-        <span class="amount-red">-${fmt(g.cantidad)}</span></div>`;
+        <div style="text-align:right">
+          <span class="amount-red">-${fmt(g.cantidad)}</span>
+          ${ivaDeducido?`<div class="item-date">IVA deducible: ${fmt2(ivaDeducido)}</div>`:''}
+        </div></div>`;
     });
     html+=`<div class="list-item" style="border-top:1px solid rgba(0,0,0,.09);margin-top:4px;padding-top:12px"><b>Total variables</b><span class="amount-total" style="color:var(--red)">-${fmt(sorted.reduce((s,g)=>s+parseFloat(g.cantidad),0))}</span></div>`;
   }
@@ -1154,26 +1650,53 @@ function addIngreso(){
   showIVAPopup(amount);
 }
 
+function toggleGasIvaFields(){
+  const on=document.getElementById('gasIvaDeducible').checked;
+  document.getElementById('gasIvaRateWrap').style.display=on?'flex':'none';
+  document.getElementById('gasIvaPreviewWrap').style.display=on?'flex':'none';
+  updateGasIvaPreview();
+}
+
+function updateGasIvaPreview(){
+  const cantidad=parseFloat(document.getElementById('gasAmount').value)||0;
+  const pct=parseFloat(document.getElementById('gasIvaRatePct').value)||0;
+  document.getElementById('gasIvaPreview').textContent=fmt2(cantidad*pct/100);
+}
+
 function addGasto(){
   const amount=parseFloat(document.getElementById('gasAmount').value);
   const cat=document.getElementById('gasCat').value;
   const desc=document.getElementById('gasDesc').value.trim();
   const dateRaw=document.getElementById('gasDate').dataset.raw||'';
   if(!amount||!dateRaw){alert('Pon al menos la cantidad y selecciona la fecha.');return;}
+  const ivaDeducible=document.getElementById('gasIvaDeducible').checked;
+  const ivaRatePct=parseFloat(document.getElementById('gasIvaRatePct').value)||21;
   const list=getGastos();
-  list.push({id:nextId(),cantidad:amount,categoria:cat,descripcion:desc,fecha:dateRaw});
+  list.push({id:nextId(),cantidad:amount,categoria:cat,descripcion:desc,fecha:dateRaw,ivaDeducible,ivaRatePct});
   saveGastos(list);
   const d=new Date(dateRaw+'T12:00:00');selMonth=d.getMonth();selYear=d.getFullYear();
   document.getElementById('gasAmount').value='';
   document.getElementById('gasDesc').value='';
+  document.getElementById('gasIvaDeducible').checked=false;
+  document.getElementById('gasIvaRatePct').value='21';
+  toggleGasIvaFields();
   renderGastos();
 }
 
 function editAccount(key){
-  const labels={cuenta1:'Cuenta 1',cuenta2:'Cuenta 2',planAhorro:'Plan ahorro',cripto:'Cripto'};
+  const labels={banco:'Banco',planAhorro:'Plan ahorro',cripto:'Cripto'};
   const p=getPatrimonio();
-  const val=prompt(`Nuevo saldo — ${labels[key]} (€):`,p[key]);
-  if(val!==null&&!isNaN(parseFloat(val))){p[key]=parseFloat(val);savePatrimonio(p);render();}
+  const current = key==='banco' ? computePatrimonioTotal().banco : p[key];
+  const val=prompt(`Nuevo saldo — ${labels[key]} (€):`,current);
+  if(val!==null&&!isNaN(parseFloat(val))){
+    if(key==='banco'){
+      p.banco=parseFloat(val);
+      p.fechaRef=new Date().toISOString().split('T')[0];
+    } else {
+      p[key]=parseFloat(val);
+    }
+    savePatrimonio(p);render();
+  }
 }
 
 // ================================================================
@@ -1181,7 +1704,11 @@ function editAccount(key){
 // ================================================================
 
 seedIfNeeded();
+seedPendientesIfNeeded();
+backfillQ2FixedCosts();
 migrate();
+migratePatrimonio();
+autogenFixedCosts();
 render();
 setInterval(renderHeader,60000);
 </script>
