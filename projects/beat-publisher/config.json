@@ -1,0 +1,42 @@
+{
+  "ffmpeg": "C:\\Users\\Xavi\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.1.2-full_build\\bin\\ffmpeg.exe",
+  "cover_por_defecto": "assets/cover-17.png",
+  "carpeta_fotos": "F:\\IMAGENES\\17\\Videobeats",
+  "carpeta_salida_videos": "F:\\VIDEOS\\Videobeats",
+  "resolucion": "1920x1080",
+  "bitrate_audio": "320k",
+
+  "beatstars_perfil": "https://17beats.beatstars.com/",
+  "instagram": "https://www.instagram.com/17godbeats/",
+  "tiktok": "https://www.tiktok.com/@17godbeats",
+
+  "canales_youtube": {
+    "rnb_trap": {
+      "generos": ["RnB", "Bouncy", "Trap"],
+      "handle": "https://www.youtube.com/@Prod-by17beats"
+    },
+    "reggaeton_afro_funk": {
+      "generos": ["Reggaeton", "Afro", "Funk Brazil"],
+      "handle": "https://www.youtube.com/@17beats-afro"
+    }
+  },
+
+  "precios": {
+    "mp3": "30$",
+    "wav": "35$",
+    "stems": "80$",
+    "promo": "BUY 2 GET 1 FREE"
+  },
+
+  "seo": {
+    "herramienta": "VidIQ (extensión de navegador instalada)",
+    "nota": "Usar los datos de VidIQ (search volume / competition) para elegir tags. Sin VidIQ, investigación manual en YouTube."
+  },
+
+  "publicacion_por_defecto": {
+    "hora": "20:00",
+    "zona": "Europe/Madrid",
+    "cadencia": "día sí, día no (cada 2 días)",
+    "nota": "Fijado por Chavo el 2026-07-10"
+  }
+}

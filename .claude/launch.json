@@ -1,0 +1,24 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "finance",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "4321", "--directory", "dashboard"],
+      "port": 4321
+    },
+    {
+      "name": "motion-17",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "projects/motion-17"],
+      "port": 3000
+    },
+    {
+      "name": "wii-tube-mp3",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "cwd": "projects/wii-tube-mp3",
+      "port": 4317
+    }
+  ]
+}

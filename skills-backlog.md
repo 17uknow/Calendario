@@ -4,7 +4,7 @@ Backlog de flujos de trabajo recurrentes que se convertirán en skills cuando to
 
 ## Prioritarios
 - **sistema-organizacion** — Calendario + to-do list integrado. Ver el día claro, con contexto de por qué está cada tarea y cómo conecta con las metas.
-- **exportar-beats-beatstars** — Flujo de exportación de beats desde FL Studio y subida de licencias a Beatstars con los metadatos correctos.
+- **exportar-beats-beatstars** — EN CONSTRUCCIÓN: la exportación vive en `projects/fl-export-automation` y la subida (vídeo + YouTube + Beatstars) en `projects/beat-publisher` + skill `subir-beat`. Falta la primera prueba real de ambos.
 - **contacto-artistas** — Plantilla y flujo para contactar artistas o productores (envío de beats, loops, propuestas de colaboración).
 
 ## Ideas abiertas

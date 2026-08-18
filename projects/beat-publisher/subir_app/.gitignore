@@ -1,0 +1,6 @@
+# Sesión del navegador — nunca subir a git (contiene cookies/tokens de sesión)
+perfil/
+
+# Artefactos de exploración/depuración (capturas y scripts throwaway)
+_inspeccion/
+_*.py

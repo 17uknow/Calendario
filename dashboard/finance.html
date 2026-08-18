@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>17. Finance</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -263,6 +266,9 @@
     <div class="logo">17.<span>finance</span></div>
     <div class="header-right">
       <div class="date-badge" id="dateBadge"></div>
+      <div class="date-badge" id="syncBadge" style="cursor:pointer" onclick="manualSync()" oncontextmenu="forcePushDropbox();return false;"></div>
+      <div class="date-badge" style="cursor:pointer" onclick="exportData()" title="Copia todos los datos al portapapeles">📤 Exportar</div>
+      <div class="date-badge" style="cursor:pointer" onclick="importData()" title="Pega datos copiados con Exportar">📥 Importar</div>
       <div id="reminderBadge"></div>
     </div>
   </header>
@@ -648,13 +654,15 @@ const isExcludedMonth = (y,m) => EXCLUDED_BALANCE_MONTHS.some(e=>e.y===y&&e.m===
 
 const GASTOS_FIJOS = [
   { nombre:'Alquiler',            cat:'alquiler',      cantidad:650 },
-  { nombre:'Gastos casa (común)', cat:'gastos-casa',   cantidad:250 },
+  { nombre:'Gastos casa (común)', cat:'gastos-casa',   cantidad:285 },
   { nombre:'Cuota autónomo',      cat:'autonomo',      cantidad:300 },
   { nombre:'Estudio',             cat:'otros',         cantidad:73  },
-  { nombre:'Splice',              cat:'suscripciones', cantidad:15  },
-  { nombre:'Dropbox',             cat:'suscripciones', cantidad:12  },
+  { nombre:'Splice',              cat:'suscripciones', cantidad:12  },
+  { nombre:'Dropbox',             cat:'suscripciones', cantidad:10  },
   { nombre:'iCloud+',             cat:'suscripciones', cantidad:10  },
+  { nombre:'Spotify',             cat:'suscripciones', cantidad:3.5 },
   { nombre:'Netflix',             cat:'suscripciones', cantidad:3   },
+  { nombre:'Claude',              cat:'suscripciones', cantidad:20  },
   { nombre:'Plan ahorro',         cat:'plan-ahorro',   cantidad:75  },
 ];
 const TOTAL_FIJOS = GASTOS_FIJOS.reduce((s,g)=>s+g.cantidad,0);
@@ -709,6 +717,7 @@ function migrate() {
   let changed = false;
   gastos.forEach(g => {
     if(g.categoria==='compra-casa'){ g.categoria='gastos-casa'; changed=true; }
+    if(!g.categoria && g.descripcion==='Dropbox'){ g.categoria='suscripciones'; changed=true; }
     if(g.ivaDeducible===undefined){ g.ivaDeducible=false; changed=true; }
     if(g.ivaRatePct===undefined){ g.ivaRatePct=21; changed=true; }
     if(g.descripcion==='Estudio' && g.ivaOverride===undefined){ g.ivaOverride=(g.iva&&g.iva>0)?g.iva:ESTUDIO_IVA; changed=true; }
@@ -774,15 +783,38 @@ function migratePatrimonio() {
 
 function backfillQ2FixedCosts() {
   if (localStorage.getItem('17f_q2backfill')) return;
-  const dates = ['2026-04-01','2026-05-01','2026-06-01'];
+  const dates = [['2026-04-01',2026,3],['2026-05-01',2026,4],['2026-06-01',2026,5]];
   const gastos = getGastos();
-  dates.forEach(fecha=>{
-    gastos.push({id:nextId(),cantidad:15,categoria:'suscripciones',descripcion:'Splice',fecha,ivaDeducible:false,ivaRatePct:21});
-    gastos.push({id:nextId(),cantidad:12,categoria:'suscripciones',descripcion:'Dropbox',fecha,ivaDeducible:false,ivaRatePct:21});
-    gastos.push({id:nextId(),cantidad:73,categoria:'otros',descripcion:'Estudio',fecha,ivaDeducible:true,ivaRatePct:21,ivaOverride:ESTUDIO_IVA});
+  dates.forEach(([fecha,y,m])=>{
+    GASTOS_FIJOS.forEach(item=>{
+      const isEstudio = item.nombre==='Estudio';
+      gastos.push({id:nextId(),cantidad:item.cantidad,categoria:item.cat,descripcion:item.nombre,fecha,ivaDeducible:isEstudio,ivaRatePct:21,ivaOverride:isEstudio?ESTUDIO_IVA:undefined});
+    });
+    localStorage.setItem('17f_autogen_'+monthKey(y,m),'1'); // evita que se duplique con el bloque fijo
   });
   saveGastos(gastos);
   localStorage.setItem('17f_q2backfill','1');
+}
+
+// Repara instalaciones que ya hicieron el backfill viejo (solo 3 de 9 gastos fijos,
+// causando doble conteo con el bloque fijo). Añade lo que falta y marca los meses como autogenerados.
+function repairQ2BackfillIfNeeded() {
+  if (localStorage.getItem('17f_q2backfill_v2')) return;
+  if (!localStorage.getItem('17f_q2backfill')) { localStorage.setItem('17f_q2backfill_v2','1'); return; }
+  const dates = [['2026-04-01',2026,3],['2026-05-01',2026,4],['2026-06-01',2026,5]];
+  const gastos = getGastos();
+  dates.forEach(([fecha,y,m])=>{
+    GASTOS_FIJOS.forEach(item=>{
+      const yaExiste = gastos.some(g=>g.fecha===fecha && g.descripcion===item.nombre);
+      if (!yaExiste) {
+        const isEstudio = item.nombre==='Estudio';
+        gastos.push({id:nextId(),cantidad:item.cantidad,categoria:item.cat,descripcion:item.nombre,fecha,ivaDeducible:isEstudio,ivaRatePct:21,ivaOverride:isEstudio?ESTUDIO_IVA:undefined});
+      }
+    });
+    localStorage.setItem('17f_autogen_'+monthKey(y,m),'1');
+  });
+  saveGastos(gastos);
+  localStorage.setItem('17f_q2backfill_v2','1');
 }
 
 function seedPendientesIfNeeded() {
@@ -816,14 +848,173 @@ let projMonths = new Set(); // nunca se persiste — se reinicia cada carga
 // ================================================================
 
 const getPatrimonio  = () => { const s=localStorage.getItem('17f_patrimonio'); return s?JSON.parse(s):{banco:24428.01,planAhorro:600,cripto:300,fechaRef:new Date().toISOString().split('T')[0]}; };
-const savePatrimonio = p => localStorage.setItem('17f_patrimonio',JSON.stringify(p));
+const savePatrimonio = p => { localStorage.setItem('17f_patrimonio',JSON.stringify(p)); syncToDropbox(); };
 const getIngresos    = () => { const s=localStorage.getItem('17f_ingresos');  return s?JSON.parse(s):[]; };
-const saveIngresos   = g => localStorage.setItem('17f_ingresos',JSON.stringify(g));
+const saveIngresos   = g => { localStorage.setItem('17f_ingresos',JSON.stringify(g)); syncToDropbox(); };
 const getGastos      = () => { const s=localStorage.getItem('17f_gastos');    return s?JSON.parse(s):[]; };
-const saveGastos     = g => localStorage.setItem('17f_gastos',JSON.stringify(g));
+const saveGastos     = g => { localStorage.setItem('17f_gastos',JSON.stringify(g)); syncToDropbox(); };
 const getPendientes  = () => { const s=localStorage.getItem('17f_pendientes'); return s?JSON.parse(s):[]; };
-const savePendientes = p => localStorage.setItem('17f_pendientes',JSON.stringify(p));
+const savePendientes = p => { localStorage.setItem('17f_pendientes',JSON.stringify(p)); syncToDropbox(); };
 const nextId         = () => { const n=parseInt(localStorage.getItem('17f_nextId')||'1'); localStorage.setItem('17f_nextId',n+1); return n; };
+
+// ================================================================
+// DROPBOX SYNC — reutiliza el mismo login que el dashboard del calendario
+// (mismo origen, misma app de Dropbox, archivo distinto)
+// ================================================================
+
+const DBX_KEY  = 'dtd99iaszc7m27m';
+const DBX_FILE = '/finance-data.json';
+let dbxTokens  = null;
+let _syncTimer = null;
+
+function dbxLoadTokens(){ try{ const d=JSON.parse(localStorage.getItem('17dbx')||'null'); if(d&&d.access_token) dbxTokens=d; }catch(e){} }
+function dbxConnected(){ return !!dbxTokens; }
+
+async function dbxRefresh(){
+  if(!dbxTokens?.refresh_token) return false;
+  const res=await fetch('https://api.dropboxapi.com/oauth2/token',{
+    method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({grant_type:'refresh_token',refresh_token:dbxTokens.refresh_token,client_id:DBX_KEY})
+  });
+  const d=await res.json();
+  if(d.access_token){ dbxTokens.access_token=d.access_token; localStorage.setItem('17dbx',JSON.stringify(dbxTokens)); return true; }
+  return false;
+}
+
+async function dbxFetch(url,opts,retry=true){
+  const res=await fetch(url,opts);
+  if(res.status===401&&retry){
+    const ok=await dbxRefresh();
+    if(ok){ opts.headers['Authorization']=`Bearer ${dbxTokens.access_token}`; return dbxFetch(url,opts,false); }
+  }
+  return res;
+}
+
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+async function dbxRead(tries=3){
+  if(!dbxTokens) return null;
+  await dbxRefresh();
+  for(let i=0;i<tries;i++){
+    try{
+      const linkRes=await dbxFetch('https://api.dropboxapi.com/2/files/get_temporary_link',{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${dbxTokens.access_token}`,'Content-Type':'application/json'},
+        body:JSON.stringify({path:DBX_FILE})
+      });
+      if(linkRes.ok){
+        const{link}=await linkRes.json();
+        const fileRes=await fetch(link);
+        if(fileRes.ok) return await fileRes.json();
+      }
+    }catch(e){}
+    if(i<tries-1) await sleep(800*(i+1));
+  }
+  return null;
+}
+
+async function dbxWrite(data,tries=3){
+  if(!dbxTokens) return;
+  await dbxRefresh();
+  for(let i=0;i<tries;i++){
+    try{
+      const res=await dbxFetch('https://content.dropboxapi.com/2/files/upload',{
+        method:'POST',
+        headers:{
+          'Authorization':`Bearer ${dbxTokens.access_token}`,
+          'Dropbox-API-Arg':JSON.stringify({path:DBX_FILE,mode:'overwrite',mute:true}),
+          'Content-Type':'application/octet-stream'
+        },
+        body:JSON.stringify(data)
+      });
+      if(res.ok) return;
+    }catch(e){}
+    if(i<tries-1) await sleep(800*(i+1));
+  }
+}
+
+// Empaqueta/restaura todas las claves 17f_* (sea cuales sean, incl. flags de autogen dinámicos)
+function snapshotLocal(){
+  const data={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith('17f_')) data[k]=localStorage.getItem(k);
+  }
+  return data;
+}
+function applyRemoteData(remote){
+  for(let i=localStorage.length-1;i>=0;i--){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith('17f_')) localStorage.removeItem(k);
+  }
+  Object.entries(remote).forEach(([k,v])=>{ if(k.startsWith('17f_')) localStorage.setItem(k,v); });
+}
+
+function syncToDropbox(){
+  if(!dbxConnected()) return;
+  clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(()=>dbxWrite(snapshotLocal()),600);
+}
+
+async function manualSync(){
+  if(!dbxConnected()){
+    alert('Conecta Dropbox primero desde el dashboard del calendario (index.html) — finanzas usa el mismo login.');
+    return;
+  }
+  const badge=document.getElementById('syncBadge');
+  badge.style.opacity='.5';
+  const remote=await dbxRead();
+  if(remote) applyRemoteData(remote);
+  else syncToDropbox(); // no existe aún en la nube: este dispositivo lo crea
+  badge.style.opacity='1';
+  renderSyncBadge();
+  render();
+}
+
+async function forcePushDropbox(){
+  if(!dbxConnected()){ alert('Conecta Dropbox primero desde el calendario (index.html).'); return; }
+  if(!confirm('¿Subir los datos de ESTE dispositivo y machacar lo que haya en la nube? Los demás dispositivos perderán su versión al sincronizar después.')) return;
+  const badge=document.getElementById('syncBadge');
+  badge.style.opacity='.5';
+  await dbxWrite(snapshotLocal());
+  badge.style.opacity='1';
+  alert('Subido. Ahora en los OTROS dispositivos pulsa el indicador (click normal) para que bajen esta versión.');
+}
+
+function exportData(){
+  const json=JSON.stringify(snapshotLocal());
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(json).then(()=>{
+      alert('Copiado al portapapeles. Ve a la otra página/origen y pulsa "📥 Importar".');
+    }).catch(()=>{ prompt('Copia este texto a mano (Ctrl+C):', json); });
+  } else {
+    prompt('Copia este texto a mano (Ctrl+C):', json);
+  }
+}
+
+async function importData(){
+  const json=prompt('Pega aquí el texto que copiaste con "📤 Exportar":');
+  if(!json) return;
+  try{
+    const data=JSON.parse(json);
+    applyRemoteData(data);
+    if(dbxConnected()){
+      clearTimeout(_syncTimer);
+      await dbxWrite(snapshotLocal()); // sube YA, antes de recargar, para que no la pise la nube vieja
+    }
+    alert('Importado correctamente. La página se va a recargar.');
+    window.location.reload();
+  }catch(e){
+    alert('Eso no es un JSON válido. Revisa que copiaste el texto completo.');
+  }
+}
+
+function renderSyncBadge(){
+  const badge=document.getElementById('syncBadge');
+  if(!badge) return;
+  badge.textContent = dbxConnected() ? '🔄 Sincronizado' : '⚠ Sin Dropbox';
+  badge.title = dbxConnected() ? 'Click: bajar de la nube · Click derecho: subir y machacar la nube' : 'Conecta Dropbox desde el calendario';
+}
 
 // ================================================================
 // HELPERS
@@ -861,23 +1052,25 @@ const totalGasMes = (m,y) => {
   return monthAutogenned(y,m) ? varSum : varSum+TOTAL_FIJOS;
 };
 
-// Un mes "ha pasado" cuando ya no es el mes actual ni uno futuro
+// Mes ya cerrado (anterior al actual)
 function monthSettled(y,m) {
   const today=new Date();
   return (y<today.getFullYear()) || (y===today.getFullYear() && m<today.getMonth());
 }
+// Mes presente o pasado (no futuro)
+function monthPresentOrPast(y,m) {
+  const today=new Date();
+  return (y<today.getFullYear()) || (y===today.getFullYear() && m<=today.getMonth());
+}
 
-// Patrimonio derivado: saldo base + meses YA CERRADOS desde la fecha de referencia.
-// El mes en curso no se contabiliza todavía (aunque ya tengas facturas mandadas sin cobrar).
+// Patrimonio derivado: saldo base + todos los meses YA CERRADOS (no excluidos).
+// El mes en curso no se contabiliza todavía.
 function computePatrimonioTotal() {
   const p = getPatrimonio();
-  const ref = new Date(p.fechaRef+'T00:00:00');
-  const refY=ref.getFullYear(), refM=ref.getMonth();
   const inRange = (fecha) => {
     const d=new Date(fecha+'T12:00:00'), y=d.getFullYear(), m=d.getMonth();
     if (isExcludedMonth(y,m)) return false;
-    if (y<refY || (y===refY && m<refM)) return false; // anterior al snapshot, ya contado
-    return monthSettled(y,m); // solo cuenta si el mes ya cerró
+    return monthPresentOrPast(y,m);
   };
   const ingDelta = getIngresos().filter(i=>inRange(i.fecha)).reduce((s,i)=>s+netoIngreso(i),0);
   const gasDelta = getGastos().filter(g=>inRange(g.fecha)).reduce((s,g)=>s+parseFloat(g.cantidad),0);
@@ -886,11 +1079,12 @@ function computePatrimonioTotal() {
   return {banco, planAhorro:p.planAhorro, cripto:p.cripto, total};
 }
 
-// IVA pendiente de pagar del trimestre fiscal real en curso (informativo, nunca se resta del total)
-function getPendingIVANote() {
-  const today=new Date();
-  const trim = today.getMonth()<=5 ? 2 : 3;
-  const {resultado} = getIVATrimestre(trim);
+// Devuelve el número de trimestre fiscal (1-4) dado el mes (0-11)
+function monthToTrim(m) { return Math.floor(m/3)+1; }
+
+// IVA pendiente del trimestre del mes seleccionado (informativo, nunca se resta del total)
+function getPendingIVANote(month, year) {
+  const {resultado} = getIVATrimestre(monthToTrim(month), year);
   return resultado>0 ? resultado : 0;
 }
 
@@ -930,11 +1124,13 @@ function ivaDeducibleDe(g) {
   return parseFloat((g.cantidad*((g.ivaRatePct!==undefined?g.ivaRatePct:21)/100)).toFixed(2));
 }
 
-function getIVATrimestre(trim) {
-  const months = trim===2?[3,4,5]:[6,7,8];
-  const itemsTrim = getIngresos().filter(i=>{const d=new Date(i.fecha);return months.includes(d.getMonth())&&d.getFullYear()===2026;});
+function getIVATrimestre(trim, year) {
+  const startM = (trim-1)*3;
+  const months = [startM, startM+1, startM+2];
+  const y = year || new Date().getFullYear();
+  const itemsTrim = getIngresos().filter(i=>{const d=new Date(i.fecha);return months.includes(d.getMonth())&&d.getFullYear()===y;});
   const ivaRep = itemsTrim.filter(i=>i.iva>0).reduce((s,i)=>s+i.iva,0);
-  const gastosTrim = getGastos().filter(g=>{const d=new Date(g.fecha);return months.includes(d.getMonth())&&d.getFullYear()===2026;});
+  const gastosTrim = getGastos().filter(g=>{const d=new Date(g.fecha);return months.includes(d.getMonth())&&d.getFullYear()===y;});
   const ivaSop = gastosTrim.reduce((s,g)=>s+ivaDeducibleDe(g),0);
   const irpfRet = itemsTrim.reduce((s,i)=>s+irpfDe(i),0);
   return {ivaRep, ivaSop, resultado:ivaRep-ivaSop, irpfRet};
@@ -1425,7 +1621,10 @@ function buildMonthTabs(id,fn){
   ).join('');
 }
 
-function renderGastosFijosHTML(){
+function renderGastosFijosHTML(y,m){
+  if (y!==undefined && m!==undefined && monthAutogenned(y,m)) {
+    return `<p class="note" style="margin:0">Este mes ya tiene los gastos fijos metidos como apuntes reales en "Gastos variables" — no se suman aquí para no contarlos dos veces.</p>`;
+  }
   return GASTOS_FIJOS.map(g=>
     `<div class="list-item"><div class="list-left">${catBadge(g.cat)}<span class="item-desc">${g.nombre}</span></div><span class="amount-red">-${fmt(g.cantidad)}</span></div>`
   ).join('')+
@@ -1451,10 +1650,14 @@ function renderPendientesHTML(){
   <button class="btn-add" style="width:100%;margin-top:8px" onclick="openModal('pendiente',null)">+ Añadir pendiente</button>`;
 }
 
-function renderIVAHTML(trim){
-  const{ivaRep,ivaSop,resultado,irpfRet}=getIVATrimestre(trim);
-  const label=trim===2?'Q2 · Abr–Jun':'Q3 · Jul–Sep';
-  const decla=trim===2?'Julio 2026':'Octubre 2026';
+function renderIVAHTML(trim, year){
+  const y = year || new Date().getFullYear();
+  const{ivaRep,ivaSop,resultado,irpfRet}=getIVATrimestre(trim, y);
+  const LABELS=['','Q1 · Ene–Mar','Q2 · Abr–Jun','Q3 · Jul–Sep','Q4 · Oct–Dic'];
+  const DECLA_MES=['','Abril','Julio','Octubre','Enero'];
+  const declaYear = trim===4 ? y+1 : y;
+  const label=LABELS[trim]||`Q${trim}`;
+  const decla=`${DECLA_MES[trim]||'?'} ${declaYear}`;
   return `<div style="font-size:11.5px;color:var(--accent);font-weight:700;margin-bottom:12px">${label} · Declarar en ${decla}</div>
     <div class="iva-row"><span style="color:var(--text-2)">IVA repercutido</span><span style="color:var(--green)">+${fmt2(ivaRep)}</span></div>
     <div class="iva-row"><span style="color:var(--text-2)">IVA soportado</span><span style="color:var(--red)">-${fmt2(ivaSop)}</span></div>
@@ -1470,7 +1673,7 @@ function renderIVAHTML(trim){
 function renderResumen(){
   const pt=computePatrimonioTotal(),pct=Math.min((pt.total/GOAL)*100,100);
   document.getElementById('totalPatrimonio').textContent=fmt(pt.total);
-  const pendIVA=getPendingIVANote();
+  const pendIVA=getPendingIVANote(selMonth, selYear);
   document.getElementById('ivaPendienteNote').textContent = pendIVA>0 ? `−${fmt(pendIVA)} pendientes de IVA a Hacienda este trimestre` : '';
   document.getElementById('progressPct').textContent=pct.toFixed(1)+'%';
   document.getElementById('progressFill').style.width=pct+'%';
@@ -1523,9 +1726,9 @@ function renderResumen(){
     :'<div class="empty">Sin gastos variables</div>';
 
   drawBarChart(document.getElementById('barChart'));
-  document.getElementById('gastosFijosR').innerHTML=renderGastosFijosHTML();
+  document.getElementById('gastosFijosR').innerHTML=renderGastosFijosHTML(selYear,selMonth);
   document.getElementById('pendientesR').innerHTML=renderPendientesHTML();
-  document.getElementById('ivaR').innerHTML=renderIVAHTML(selMonth<=5?2:3);
+  document.getElementById('ivaR').innerHTML=renderIVAHTML(monthToTrim(selMonth), selYear);
   renderProjeccion();
 }
 
@@ -1587,7 +1790,9 @@ function renderGastos(){
   const varItems=gasByMonth(selMonth,selYear);
   const bycat={};
   varItems.forEach(g=>bycat[g.categoria]=(bycat[g.categoria]||0)+parseFloat(g.cantidad));
-  GASTOS_FIJOS.forEach(g=>bycat[g.cat]=(bycat[g.cat]||0)+g.cantidad);
+  if (!monthAutogenned(selYear,selMonth)) {
+    GASTOS_FIJOS.forEach(g=>bycat[g.cat]=(bycat[g.cat]||0)+g.cantidad);
+  }
   const allCats={...CAT_GAS_LABELS,...CAT_FIJOS_EXTRA};
   drawPieSVG(
     document.getElementById('pieGas'),document.getElementById('legendGas'),
@@ -1611,7 +1816,7 @@ function renderGastos(){
     html+=`<div class="list-item" style="border-top:1px solid rgba(0,0,0,.09);margin-top:4px;padding-top:12px"><b>Total variables</b><span class="amount-total" style="color:var(--red)">-${fmt(sorted.reduce((s,g)=>s+parseFloat(g.cantidad),0))}</span></div>`;
   }
   document.getElementById('gastosList').innerHTML=html;
-  document.getElementById('gastosFijosG').innerHTML=renderGastosFijosHTML();
+  document.getElementById('gastosFijosG').innerHTML=renderGastosFijosHTML(selYear,selMonth);
 }
 
 // ================================================================
@@ -1691,7 +1896,6 @@ function editAccount(key){
   if(val!==null&&!isNaN(parseFloat(val))){
     if(key==='banco'){
       p.banco=parseFloat(val);
-      p.fechaRef=new Date().toISOString().split('T')[0];
     } else {
       p[key]=parseFloat(val);
     }
@@ -1703,13 +1907,28 @@ function editAccount(key){
 // INIT
 // ================================================================
 
-seedIfNeeded();
-seedPendientesIfNeeded();
-backfillQ2FixedCosts();
-migrate();
-migratePatrimonio();
-autogenFixedCosts();
-render();
+async function initFinance(){
+  dbxLoadTokens();
+
+  seedIfNeeded();
+  seedPendientesIfNeeded();
+  backfillQ2FixedCosts();
+  repairQ2BackfillIfNeeded();
+  migrate();
+  migratePatrimonio();
+  autogenFixedCosts();
+
+  if (dbxConnected()) {
+    const remote = await dbxRead();
+    if (remote) applyRemoteData(remote);        // ya hay datos en la nube: este dispositivo se pone al día
+    else await dbxWrite(snapshotLocal());        // primer dispositivo en sincronizar: sube lo suyo como base
+  }
+
+  renderSyncBadge();
+  render();
+}
+
+initFinance();
 setInterval(renderHeader,60000);
 </script>
 </body>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Wii Tube MP3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Varela+Round&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wii-bg">
+  <div class="scanlines"></div>
+</div>
+
+<header class="wii-titlebar">
+  <h1 class="wii-title">17. <span>Tube MP3</span></h1>
+  <p class="wii-subtitle">Conversor personal de YouTube a MP3</p>
+</header>
+
+<main class="wii-grid" id="grid">
+
+  <section class="wii-channel input-channel">
+    <div class="channel-inner">
+      <h2>Pega tu link de YouTube</h2>
+      <input id="urlInput" type="text" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off">
+      <button id="loadBtn" class="wii-btn">Cargar canal</button>
+      <p class="hint">Uso personal — no para redistribuir contenido con copyright.</p>
+    </div>
+  </section>
+
+  <section class="wii-channel preview-channel" id="previewChannel" hidden>
+    <div class="channel-inner">
+      <img id="thumb" alt="thumbnail">
+      <h3 id="videoTitle"></h3>
+      <button id="convertBtn" class="wii-btn wii-btn-accent">Convertir a MP3</button>
+      <div id="status" class="status"></div>
+    </div>
+  </section>
+
+</main>
+
+<div class="wii-wave"></div>
+
+<footer class="wii-bottombar">
+  <button class="wii-round-btn" id="wiiBtn" title="Inicio">Wii</button>
+  <div class="wii-datetime">
+    <div class="wii-clock" id="clock">12:34</div>
+    <div class="wii-date" id="date">Sáb. 15/11</div>
+  </div>
+  <button class="wii-round-btn wii-round-btn-accent" id="mailBtn" title="Info">i</button>
+</footer>
+
+<div id="wiiPointer" class="wii-pointer">
+  <img id="wiiPointerImg" src="cursor/pointer-default.png" alt="">
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
