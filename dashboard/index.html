@@ -644,7 +644,7 @@ function m2t(m){return`${String(Math.floor(Math.max(0,Math.min(1439,m))/60)).pad
 function daysBetween(a,b){return Math.round((new Date(b+'T12:00')-new Date(a+'T12:00'))/86400000)}
 function tasksFor(ds){
   const direct=st.tasks.filter(x=>!x.recur&&x.date===ds);
-  const rec=st.tasks.filter(x=>x.recur&&ds>=x.date&&daysBetween(x.date,ds)%x.recur.every===0)
+  const rec=st.tasks.filter(x=>x.recur&&ds>=x.date&&daysBetween(x.date,ds)%x.recur.every===0&&!(x.skipDates||[]).includes(ds))
     .map(x=>({...x,date:ds,done:(x.doneDates||[]).includes(ds)}));
   return[...direct,...rec];
 }
@@ -654,6 +654,36 @@ function toggleRecurDone(id,dateStr){
   const i=t.doneDates.indexOf(dateStr);
   if(i>-1)t.doneDates.splice(i,1);else t.doneDates.push(dateStr);
   save();render();
+}
+function openRecurMenu(id,dateStr){
+  const t=st.tasks.find(x=>x.id===id);if(!t)return;
+  const done=(t.doneDates||[]).includes(dateStr);
+  document.getElementById('modal').innerHTML=`
+    <div class="m-title">${esc(t.title)}</div>
+    <div style="color:var(--c-sub);font-size:13px;margin-bottom:16px">Tarea recurrente · ${dateStr}</div>
+    <div class="m-acts" style="flex-direction:column;gap:10px">
+      <button class="b-done" style="width:100%" onclick="toggleRecurDone('${id}','${dateStr}');closeModal()">${done?'Reabrir':'Hecho ✓'}</button>
+      <button class="b-prim" style="width:100%" onclick="editRecurDay('${id}','${dateStr}')">Editar solo este día</button>
+      <button class="b-sec" style="width:100%" onclick="openTask('${id}')">Editar todos los días</button>
+      <button class="b-danger" style="width:100%" onclick="skipRecurDay('${id}','${dateStr}')">Eliminar solo este día</button>
+      <button class="b-sec" style="width:100%" onclick="closeModal()">Cancelar</button>
+    </div>`;
+  document.getElementById('ov').style.display='flex';
+}
+function editRecurDay(templateId,dateStr){
+  const t=st.tasks.find(x=>x.id===templateId);if(!t)return;
+  t.skipDates=t.skipDates||[];
+  if(!t.skipDates.includes(dateStr))t.skipDates.push(dateStr);
+  const override={id:uid(),done:false,title:t.title,category:t.category,goalId:t.goalId||null,date:dateStr,startTime:t.startTime||'',endTime:t.endTime||'',notes:t.notes||''};
+  st.tasks.push(override);
+  save();closeModal();
+  openTask(override.id);
+}
+function skipRecurDay(templateId,dateStr){
+  const t=st.tasks.find(x=>x.id===templateId);if(!t)return;
+  t.skipDates=t.skipDates||[];
+  if(!t.skipDates.includes(dateStr))t.skipDates.push(dateStr);
+  save();closeModal();render();
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function ds(){return fd(st.cur)}
@@ -711,7 +741,7 @@ function renderSidebar(){
     h+=`<div class="sb-cat-hdr"><span class="sb-cat-label" style="color:${col}">${cat}</span><button class="sb-add" onclick="openTask(null,'${cat}','${dateStr}')">+</button></div>`;
     ts.forEach(t=>{
       const g=t.goalId?st.goals.find(x=>x.id===t.goalId):null;
-      const click=t.recur?`toggleRecurDone('${t.id}','${t.date}')`:`openTask('${t.id}')`;
+      const click=t.recur?`openRecurMenu('${t.id}','${t.date}')`:`openTask('${t.id}')`;
       h+=`<div class="t-row ${t.done?'done':''}" onclick="${click}">
         <div class="t-pip" style="background:${col}"></div>
         <div>
@@ -762,7 +792,7 @@ function evsHtml(dateStr,small=false){
     const cbg=CB[t.category]||'rgba(0,0,0,.1)';
     const tc=CT[t.category]||'#fff';
     const isDark=t.category==='Master';
-    const click=t.recur?`toggleRecurDone('${t.id}','${t.date}')`:`openTask('${t.id}')`;
+    const click=t.recur?`openRecurMenu('${t.id}','${t.date}')`:`openTask('${t.id}')`;
     return `<div class="ev" id="ev-${t.id}" data-id="${t.id}" data-date="${dateStr}"
       style="top:${top}px;height:${h}px;background:${isDark?bg:cbg};border-left:3px solid ${bg}"
       onclick="if(!wasDrag)${click}">
@@ -863,7 +893,7 @@ function renderWeeklyTasks(){
     ts.forEach(t=>{
       const g=t.goalId?st.goals.find(x=>x.id===t.goalId):null;
       const dayName=DNS[new Date(t.date+'T12:00').getDay()];
-      const click=t.recur?`toggleRecurDone('${t.id}','${t.date}')`:`openTask('${t.id}')`;
+      const click=t.recur?`openRecurMenu('${t.id}','${t.date}')`:`openTask('${t.id}')`;
       items+=`<div class="wt-item ${t.done?'done':''}" onclick="${click}">
         <div class="wt-check"><div class="wt-check-inner"></div></div>
         <div class="wt-item-info">
@@ -1141,7 +1171,7 @@ function openTask(id=null,defCat=null,defDate=null,defTime=null,defTitle=null){
     <div class="fg"><label class="lbl">Repetir</label>
       <select class="sel" id="trec">
         <option value="" ${!t?.recur?'selected':''}>Sin repetición</option>
-        <option value="7" ${t?.recur?.every===7?'selected':''}>Semanal</option>
+        <option value="1" ${t?.recur?.every===1?'selected':''}>Semanal (todos los días)</option>
         <option value="30" ${t?.recur?.every===30?'selected':''}>Mensual</option>
       </select>
     </div>
