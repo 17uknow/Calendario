@@ -1138,6 +1138,13 @@ function openTask(id=null,defCat=null,defDate=null,defTime=null,defTitle=null){
       <div class="fg"><label class="lbl">Hora inicio</label><input class="inp" id="ts" type="time" value="${t?t.startTime:(defTime||'')}"></div>
       <div class="fg"><label class="lbl">Hora fin</label><input class="inp" id="te" type="time" value="${t?t.endTime:''}"></div>
     </div>
+    <div class="fg"><label class="lbl">Repetir</label>
+      <select class="sel" id="trec">
+        <option value="" ${!t?.recur?'selected':''}>Sin repetición</option>
+        <option value="7" ${t?.recur?.every===7?'selected':''}>Semanal</option>
+        <option value="30" ${t?.recur?.every===30?'selected':''}>Mensual</option>
+      </select>
+    </div>
     <div class="fg"><label class="lbl">Notas</label><textarea class="ta" id="tn">${t?esc(t.notes||''):''}</textarea></div>
     <div class="m-acts">
       ${t?`<button class="b-danger" onclick="delTask('${t.id}')">Eliminar</button><button class="b-done" onclick="toggleDone('${t.id}')">${t.done?'Reabrir':'Hecho ✓'}</button>`:''}
@@ -1150,7 +1157,9 @@ function openTask(id=null,defCat=null,defDate=null,defTime=null,defTitle=null){
 let pendingTemplateId=null;
 function saveTask(id){
   const title=document.getElementById('tt').value.trim();if(!title)return;
+  const recVal=document.getElementById('trec').value;
   const data={title,category:document.getElementById('tc').value,goalId:document.getElementById('tg').value||null,date:document.getElementById('td2').value,startTime:document.getElementById('ts').value,endTime:document.getElementById('te').value,notes:document.getElementById('tn').value};
+  if(recVal){data.recur={every:parseInt(recVal)};data.doneDates=data.doneDates||[];}else{delete data.recur;delete data.doneDates;}
   if(id){const i=st.tasks.findIndex(t=>t.id===id);if(i>-1)Object.assign(st.tasks[i],data);}
   else{if(pendingTemplateId){data.templateId=pendingTemplateId;pendingTemplateId=null;}st.tasks.push({id:uid(),done:false,...data});}
   save();closeModal();render();
